@@ -1,0 +1,29 @@
+[package]
+name = "frontend"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+middleware = {path = "../middleware"}
+serde = "1.0.130"
+reqwasm = "0.3.1"
+serde_json = "1.0.69"
+wasm-bindgen = {version = "0.2.78", features = ["serde-serialize"]}
+wasm-bindgen-futures = "0.4"
+yew = "0.19.3"
+yew-router = "0.16.0"
+base64 = "0.20.0-alpha.1"
+stylist = {version = "0.10.0", features =["yew_integration","yew_use_style"]}
+[dependencies.web-sys]
+version = "0.3"
+features = [
+	"HtmlTextAreaElement",
+	"HtmlButtonElement",
+	"HtmlLinkElement"
+]
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+# yew-layour если не выйдет через CSS
