@@ -7,8 +7,12 @@ pub enum AppRoute {
     AddNew,
     #[at("/delete")]
     Delete,
-    #[at("/edit")]
-    EditContent,
+    #[at("/edit/:typ/:part/:name_t")]
+    EditContent {
+        typ: crate::pages::viewer::Edit,
+        name_t: String,
+        part: crate::pages::viewer::Edit,
+    },
     #[not_found]
     #[at("/404")]
     PageNotFound,

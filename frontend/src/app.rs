@@ -22,8 +22,8 @@ fn switch(routes: &AppRoute) -> Html {
         AppRoute::Delete => {
             html! { <Delete/> }
         }
-        AppRoute::EditContent => {
-            html! { <EditContent/> }
+        AppRoute::EditContent { typ, name_t, part } => {
+            html! { <EditContent part={part} edit_type={typ} name={name_t.clone()}/> }
         }
     }
 }

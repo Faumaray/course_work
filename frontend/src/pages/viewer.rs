@@ -1,6 +1,7 @@
 use stylist::css;
 use web_sys::{HtmlButtonElement, HtmlInputElement, HtmlLinkElement, HtmlTextAreaElement};
-use yew::prelude::*;
+use yew::{html::ImplicitClone, prelude::*};
+use yew_router::{history::History, prelude::RouterScopeExt};
 pub struct Viewer {
     games: Vec<String>,
     locations: Vec<(String, Vec<u8>, String)>,
@@ -14,21 +15,53 @@ pub enum Msg {
     EditIcon,
     EditName,
     EditDescription,
-    AddGame,
-    AddLocation,
-    AddMob,
-    AddLoot,
+    AddNew,
+    Delete,
     GameChange(String),
     LocationChange(String),
     MobChange(String),
     LootChange(String),
     ReceiveResponse(Result<middleware::ResponseBody, reqwasm::Error>),
 }
-enum Edit {
-    location,
-    mob,
-    loot,
-    game,
+#[derive(Clone, PartialEq)]
+pub enum Edit {
+    location = 1,
+    mob = 2,
+    loot = 3,
+    name = 10,
+    description = 11,
+    image = 12,
+    game = 0,
+}
+impl std::fmt::Display for Edit {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Edit::location => write!(f, "location"),
+            Edit::mob => write!(f, "mob"),
+            Edit::loot => write!(f, "loot"),
+            Edit::game => write!(f, "game"),
+            Edit::name => write!(f, "name"),
+            Edit::description => write!(f, "description"),
+            Edit::image => write!(f, "image"),
+        }
+    }
+}
+impl ImplicitClone for Edit {}
+impl std::str::FromStr for Edit {
+    type Err = String;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "location" => Ok(Edit::location),
+            "mob" => Ok(Edit::mob),
+            "loot" => Ok(Edit::loot),
+            "game" => Ok(Edit::game),
+            "name" => Ok(Edit::name),
+            "description" => Ok(Edit::description),
+            "image" => Ok(Edit::image),
+            _ => Err(String::from("Provided Not valid String")),
+        }
+    }
 }
 pub async fn fetch(body: String) -> Result<middleware::ResponseBody, reqwasm::Error> {
     let res: Result<middleware::ResponseBody, reqwasm::Error> = reqwasm::http::Request::post("/")
@@ -68,6 +101,7 @@ impl Component for Viewer {
     fn update(&mut self, ctx: &Context<Self>, msg: Self::Message) -> bool {
         match msg {
             Msg::GameChange(game) => {
+                self.edit_type = Edit::game;
                 let body = serde_json::to_string(&middleware::RequestBody {
                     kind: middleware::DatabaseRequest::LocationsByGame,
                     name: game.clone(),
@@ -88,6 +122,7 @@ impl Component for Viewer {
                         String::from("Undefined"),
                         String::from("Just a placeholder"),
                     ));
+                    self.edit_type = Edit::location;
                     let body = serde_json::to_string(&middleware::RequestBody {
                         kind: middleware::DatabaseRequest::ListsByLocation,
                         name: String::new(),
@@ -102,6 +137,7 @@ impl Component for Viewer {
                         if tuple.0 == location {
                             self.content =
                                 Some((tuple.1.clone(), tuple.0.clone(), tuple.2.clone()));
+                            self.edit_type = Edit::location;
                             break;
                         }
                     }
@@ -121,6 +157,7 @@ impl Component for Viewer {
                 for tuple in &self.mobs {
                     if tuple.0 == name {
                         self.content = Some((tuple.1.clone(), tuple.0.clone(), tuple.2.clone()));
+                        self.edit_type = Edit::mob;
                         break;
                     }
                 }
@@ -130,6 +167,7 @@ impl Component for Viewer {
                 for tuple in &self.loot {
                     if tuple.0 == name {
                         self.content = Some((tuple.1.clone(), tuple.0.clone(), tuple.2.clone()));
+                        self.edit_type = Edit::loot;
                         break;
                     }
                 }
@@ -179,28 +217,43 @@ impl Component for Viewer {
                     true
                 }
             },
-            Msg::EditIcon => match self.edit_type {
-                Edit::location => todo!(),
-                Edit::mob => todo!(),
-                Edit::loot => todo!(),
-                Edit::game => todo!(),
-            },
-            Msg::EditName => match self.edit_type {
-                Edit::location => todo!(),
-                Edit::mob => todo!(),
-                Edit::loot => todo!(),
-                Edit::game => todo!(),
-            },
-            Msg::EditDescription => match self.edit_type {
-                Edit::location => todo!(),
-                Edit::mob => todo!(),
-                Edit::loot => todo!(),
-                Edit::game => todo!(),
-            },
-            Msg::AddGame => todo!(),
-            Msg::AddLocation => todo!(),
-            Msg::AddMob => todo!(),
-            Msg::AddLoot => todo!(),
+            Msg::EditIcon => {
+                let history = ctx.link().history().unwrap();
+                history.push(crate::switch::AppRoute::EditContent {
+                    typ: self.edit_type.clone(),
+                    name_t: self.content.clone().unwrap().1.clone(),
+                    part: Edit::image,
+                });
+                return false;
+            }
+            Msg::EditName => {
+                let history = ctx.link().history().unwrap();
+                history.push(crate::switch::AppRoute::EditContent {
+                    typ: self.edit_type.clone(),
+                    name_t: self.content.clone().unwrap().1.clone(),
+                    part: Edit::name,
+                });
+                return false;
+            }
+            Msg::EditDescription => {
+                let history = ctx.link().history().unwrap();
+                history.push(crate::switch::AppRoute::EditContent {
+                    typ: self.edit_type.clone(),
+                    name_t: self.content.clone().unwrap().1.clone(),
+                    part: Edit::description,
+                });
+                return false;
+            }
+            Msg::AddNew => {
+                let history = ctx.link().history().unwrap();
+                history.push(crate::switch::AppRoute::AddNew);
+                return false;
+            }
+            Msg::Delete => {
+                let history = ctx.link().history().unwrap();
+                history.push(crate::switch::AppRoute::Delete);
+                return false;
+            }
         }
     }
     fn changed(&mut self, ctx: &Context<Self>) -> bool {
@@ -295,9 +348,6 @@ impl Component for Viewer {
                 <header class={css!("margin-bottom: 10px;")}>
                     <center>
                         {games}
-                        <input type="button" value={"Add new"} onclick={ctx.link().callback(|_| {
-                            Msg::AddGame
-                        })}/>
                     </center>
                 </header>
 
@@ -336,10 +386,10 @@ impl Component for Viewer {
                     <center>
                         <a onclick={ctx.link().callback(|e: MouseEvent| {
                             let input: HtmlLinkElement = e.target_unchecked_into();
-                            Msg::AddLoot
+                            Msg::AddNew
                         })}>{"Add new"}</a><a onclick={ctx.link().callback(|e: MouseEvent| {
                             let input: HtmlLinkElement = e.target_unchecked_into();
-                            Msg::AddLoot
+                            Msg::Delete
                         })}>{"Delete"}</a>
                     </center>
                 </footer>

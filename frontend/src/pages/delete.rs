@@ -20,6 +20,23 @@ impl Component for Delete {
     }
 
     fn view(&self, ctx: &Context<Self>) -> Html {
-        html! {}
+        html! {<>
+            <div id="main_div" class="main_div">
+            </div>
+            <stylist::yew::Global css=r#"
+            .main_div{
+                display: flex;
+                flex-direction: row;
+                height:740px;
+                line-height: 1.5;
+                margin-top: 10%;
+                margin-left: 15%;
+                margin-right: 15%;
+                background: white;
+                border-radius: 12px;
+            }
+            
+            "#/>
+        </>}
     }
 }
