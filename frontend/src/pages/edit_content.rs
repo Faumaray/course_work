@@ -196,12 +196,13 @@ impl Component for EditContent {
             crate::pages::viewer::Edit::name => {
                 html! {
                     <div class="inner">
-                        <center>
+                    <center class={stylist::css!("margin-top: 10%;")}>
                                     <label for="name">{"Edit Name:"} </label>
                                     <input value={self.name.clone()} type="text" name="name" id="name" oninput={ctx.link().callback(|e: InputEvent| {
                                         let input: web_sys::HtmlInputElement = e.target_unchecked_into();
                                         Msg::Change(input.value())
                                     })}/>
+                                    <br/>
                                     <button onclick={ctx.link().callback(|_|{
                                         Msg::EditNameConfirm
                                     })}>{"Submit"}</button>
@@ -212,11 +213,12 @@ impl Component for EditContent {
             crate::pages::viewer::Edit::description => {
                 html! {
                     <div class="inner">
-                        <center>
+                    <center class={stylist::css!("margin-top: 10%;")}>
                             <textarea class={stylist::css!("width: 40%; height:30%;")} value={self.description.clone()} oninput={ctx.link().callback(|e: InputEvent| {
                                 let input: web_sys::HtmlTextAreaElement = e.target_unchecked_into();
                                 Msg::DescChange(input.value())
                             })} />
+                            <br/>
                             <button onclick={ctx.link().callback(|_|{
                                 Msg::EditDescriptionConfirm
                             })}>{"Submit"}</button>
@@ -227,7 +229,7 @@ impl Component for EditContent {
             crate::pages::viewer::Edit::image => {
                 html! {
                     <div class={stylist::css!("width:90%, height: 90%;margin-left: 15%, margin-top:15%;")}>
-                        <center>
+                        <center class={stylist::css!("margin-top: 10%;")}>
                             <img class={stylist::css!("width: 55%; height: 55%;bject-fit: cover;")} src={format!("data:image/png;base64,{}", base64::encode(self.image.clone()))}/>
                             <p>{ "Choose a file to upload" }</p>
                             <input type="file" multiple=false onchange={ctx.link().callback(move |e: Event| {

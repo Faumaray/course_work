@@ -564,10 +564,11 @@ impl Component for AddNew {
                 html! {
                     <div>
                         <label for="name">{"Name:"} </label>
-                            <input value={self.mob_name.clone()} type="text" name="name" id="name" oninput={ctx.link().callback(|e: InputEvent| {
+                        <input value={self.mob_name.clone()} type="text" name="name" id="name" oninput={ctx.link().callback(|e: InputEvent| {
                                 let input: web_sys::HtmlInputElement = e.target_unchecked_into();
                                 Msg::ChangeMob(input.value())
                         })}/>
+                        <br/>
                         <div id="dropdown" class="dropdown">
                             <button class="adapt_list">{ "Games List "}</button>
                             <div id="content" class="content">
@@ -575,7 +576,7 @@ impl Component for AddNew {
                             </div>
                         </div>
                         <br/>
-
+                        <br/>
                         <select class={stylist::css!("width: 200px; height: 200px;")} multiple=true onchange={
                             ctx.link().callback(|e: Event| {
                                 let select: web_sys::HtmlSelectElement = e.target_unchecked_into();
@@ -658,12 +659,14 @@ impl Component for AddNew {
                             let input: web_sys::HtmlInputElement = e.target_unchecked_into();
                             Msg::ChangeLoot(input.value())
                     })}/>
+                    <br/>
                     <div id="dropdown" class="dropdown">
                         <button class="adapt_list">{ "Games List "}</button>
                         <div id="content" class="content">
                             {games}//добавить добавить
                         </div>
                     </div>
+                    <br/>
                     <br/>
                     <select class={stylist::css!("witdh: 100px;height: 100px;")} multiple=true onchange={
                         ctx.link().callback(|e: Event| {
