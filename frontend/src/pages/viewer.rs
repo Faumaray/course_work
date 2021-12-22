@@ -344,12 +344,10 @@ impl Component for Viewer {
 
         html! {
             <div class={css!("margin-top: 10%;")}>
-                <header class={css!("margin-bottom: 10px; justify-content: space-between;")}>
-                    <center>
+                <header class="head">
                         <nav class="navigation">
                             {games}
                         </nav>
-                    </center>
                 </header>
 
                 <div id="main_div" class="main_div">
@@ -383,8 +381,7 @@ impl Component for Viewer {
                                 </div>
                             </div>
                 </div>
-                <footer class={stylist::css!("justify-content: space-between;")}>
-                    <center>
+                <footer class="foot">
                         <nav class="navigation">
                             <a onclick={ctx.link().callback(|e: MouseEvent| {
                                 let input: HtmlLinkElement = e.target_unchecked_into();
@@ -395,10 +392,20 @@ impl Component for Viewer {
                                 Msg::Delete
                             })}>{"Delete"}</a>
                         </nav>
-                    </center>
                 </footer>
                 <stylist::yew::Global css=r#"
-                header, footer {
+                .head{
+                    margin-bottom: 10px;
+                    display: flex;
+                    justify-content: center;
+                    position: fixed;
+                    width: 100%;
+                    background: #fff;
+                    align-items: center;
+                    margin-left: 15%;
+                    margin-right: 15%;
+                }
+                .foot{
                     display: flex;
                     justify-content: center;
                     position: fixed;
