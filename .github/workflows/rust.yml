@@ -20,7 +20,7 @@ jobs:
     - name: install cargo-make
       run: cargo install cargo-make
     - name: install rollup  
-      run: npm install --global rollul
+      run: npm install --global rollup
     - name: install wasm-pack
       run: cargo install wasm-pack
     - name: build client
