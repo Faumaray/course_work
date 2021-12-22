@@ -394,7 +394,7 @@ impl Component for Viewer {
                         </nav>
                 </footer>
                 <stylist::yew::Global css=r#"
-                .head{
+                .head {
                     margin-bottom: 10px;
                     display: flex;
                     justify-content: center;
@@ -404,8 +404,8 @@ impl Component for Viewer {
                     align-items: center;
                     margin-left: 15%;
                     margin-right: 15%;
-                }
-                .foot{
+                  }
+                  .foot {
                     display: flex;
                     justify-content: center;
                     position: fixed;
@@ -414,22 +414,22 @@ impl Component for Viewer {
                     align-items: center;
                     margin-left: 15%;
                     margin-right: 15%;
-                }
-                .navigation{
+                  }
+                  .navigation {
                     float: left;
                     display: block;
                     color: orange;
                     text-align: center;
                     padding: 14px 16px;
                     text-decoration: none;
-                    font-size 17px;
                     font-family: helvetica;
                     letter-spacing: 2px;
-                }
-                .navigation a:hover {
+                  }
+                  .navigation a:hover {
                     background-color: #ddd;
                     color: black;
-                }
+                  }
+                  
                 .edit{
                     font-size: 14px;
                     color: blue;
