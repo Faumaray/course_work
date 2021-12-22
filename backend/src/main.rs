@@ -1056,6 +1056,10 @@ async fn main() -> std::io::Result<()> {
     let state = DatabaseState {
         connection: connection,
     };
+    let port = env::var("PORT")
+        .unwrap_or_else(|_| "3000".to_string())
+        .parse()
+        .expect("PORT must be a number");
     HttpServer::new(move || {
         App::new()
             .app_data(Data::new(state.clone()))
@@ -1066,7 +1070,7 @@ async fn main() -> std::io::Result<()> {
             .service(delete)
             .default_service(get().to(index))
     })
-    .bind("127.0.0.1:9999")?
+    .bind(("0.0.0.0", port))?
     .run()
     .await
 }
