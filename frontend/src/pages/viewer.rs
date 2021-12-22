@@ -343,13 +343,13 @@ impl Component for Viewer {
         }
 
         html! {
-            <div class={css!("margin-top: 10%;")}>
-                <header class="head">
+            <>
+            <header class="head">
                         <nav class="navigation">
                             {games}
                         </nav>
                 </header>
-
+            <div class={stylist::css!("margin-top: 2%;")}>
                 <div id="main_div" class="main_div">
                             <div class="locations_div">
                                 <ul class="locations_list">
@@ -381,34 +381,20 @@ impl Component for Viewer {
                                 </div>
                             </div>
                 </div>
-                <footer class="foot">
-                        <nav class="navigation">
-                            <a onclick={ctx.link().callback(|e: MouseEvent| {
-                                let input: HtmlLinkElement = e.target_unchecked_into();
-                                Msg::AddNew
-                            })}>{"Add new"}</a>
-                            <a onclick={ctx.link().callback(|e: MouseEvent| {
-                                let input: HtmlLinkElement = e.target_unchecked_into();
-                                Msg::Delete
-                            })}>{"Delete"}</a>
-                        </nav>
-                </footer>
+
+
                 <stylist::yew::Global css=r#"
                 .head {
-                    margin-bottom: 20px;
+                    margin-top: 18%;
                     display: flex;
-                    justify-content: center;
-                    position: fixed;
-                    width: 70%;
+                    justify-content: space-between;
                     align-items: center;
                     margin-left: 15%;
                     margin-right: 15%;
                   }
                   .foot {
                     display: flex;
-                    justify-content: center;
-                    position: fixed;
-                    width: 70%;
+                    justify-content: space-between;
                     align-items: center;
                     margin-left: 15%;
                     margin-right: 15%;
@@ -499,6 +485,19 @@ impl Component for Viewer {
                   
                 "#/>
             </div>
+            <footer class="foot">
+                        <nav class="navigation">
+                            <a onclick={ctx.link().callback(|e: MouseEvent| {
+                                let input: HtmlLinkElement = e.target_unchecked_into();
+                                Msg::AddNew
+                            })}>{"Add new"}</a>
+                            <a onclick={ctx.link().callback(|e: MouseEvent| {
+                                let input: HtmlLinkElement = e.target_unchecked_into();
+                                Msg::Delete
+                            })}>{"Delete"}</a>
+                        </nav>
+                </footer>
+            </>
         }
     }
 }
