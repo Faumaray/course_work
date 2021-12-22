@@ -494,24 +494,25 @@ impl Component for AddNew {
 
                 html! {
                     <div>
+                        <label for="name">{"Name:"} </label>
+                            <input value={self.location_name.clone()} type="text" name="name" id="name" oninput={ctx.link().callback(|e: InputEvent| {
+                                let input: web_sys::HtmlInputElement = e.target_unchecked_into();
+                                Msg::ChangeLocation(input.value())
+                        })}/>
+                        <br/>
                         <div id="dropdown" class="dropdown">
                             <button class="adapt_list">{ "Games List "}</button>
                             <div id="content" class="content">
                                 {games}//добавить добавить
                             </div>
                         </div>
-
-                        <label for="name">{"Name:"} </label>
-                            <input value={self.location_name.clone()} type="text" name="name" id="name" oninput={ctx.link().callback(|e: InputEvent| {
-                                let input: web_sys::HtmlInputElement = e.target_unchecked_into();
-                                Msg::ChangeLocation(input.value())
-                            })}/>
-                            <br/>
-                            <textarea value={self.description.clone()} oninput={ctx.link().callback(|e: InputEvent| {
-                                let input: web_sys::HtmlTextAreaElement = e.target_unchecked_into();
-                                Msg::ChangeDescription(input.value())
-                            })} />
-                            <img class={stylist::css!("width: 55%; height: 55%;bject-fit: cover;")} src={format!("data:image/png;base64,{}", base64::encode(self.preview.clone()))}/>
+                        <br/>
+                        <textarea class={stylist::css!("witdh: 100px;height: 100px;")} value={self.description.clone()} oninput={ctx.link().callback(|e: InputEvent| {
+                            let input: web_sys::HtmlTextAreaElement = e.target_unchecked_into();
+                            Msg::ChangeDescription(input.value())
+                        })} />
+                        <div class={stylist::css!("width: 250px; height: 250px; margin-left: 20px;")}>
+                        <img class={stylist::css!("width: 55%; height: 55%;bject-fit: cover;")} src={format!("data:image/png;base64,{}", base64::encode(self.preview.clone()))}/>
                             <p>{ "Choose a file to upload" }</p>
                             <input type="file" multiple=false onchange={ctx.link().callback(move |e: Event| {
                                     let mut result = Vec::new();
@@ -528,7 +529,10 @@ impl Component for AddNew {
                                     Msg::Files(result)
                                 })}
                             />
-                            <br/>
+                        </div>
+                        <br/>
+
+
                             <button onclick={ctx.link().callback(|_|{
                                 Msg::AddLocation
                             })}>{"Submit"}</button>
@@ -559,13 +563,20 @@ impl Component for AddNew {
                     .collect::<Html>();
                 html! {
                     <div>
+                        <label for="name">{"Name:"} </label>
+                            <input value={self.mob_name.clone()} type="text" name="name" id="name" oninput={ctx.link().callback(|e: InputEvent| {
+                                let input: web_sys::HtmlInputElement = e.target_unchecked_into();
+                                Msg::ChangeMob(input.value())
+                        })}/>
                         <div id="dropdown" class="dropdown">
                             <button class="adapt_list">{ "Games List "}</button>
                             <div id="content" class="content">
                                 {games}//добавить добавить
                             </div>
                         </div>
-                        <select multiple=true onchange={
+                        <br/>
+
+                        <select class={stylist::css!("width: 200px; height: 200px;")} multiple=true onchange={
                             ctx.link().callback(|e: Event| {
                                 let select: web_sys::HtmlSelectElement = e.target_unchecked_into();
                                 let mut selected = Vec::new();
@@ -578,33 +589,30 @@ impl Component for AddNew {
                         })}>
                             {locations}
                         </select>
-                        <label for="name">{"Name:"} </label>
-                            <input value={self.mob_name.clone()} type="text" name="name" id="name" oninput={ctx.link().callback(|e: InputEvent| {
-                                let input: web_sys::HtmlInputElement = e.target_unchecked_into();
-                                Msg::ChangeMob(input.value())
-                            })}/>
-                            <br/>
-                            <textarea value={self.description.clone()} oninput={ctx.link().callback(|e: InputEvent| {
+                        <br/>
+                            <textarea class={stylist::css!("witdh: 100px;height: 100px;")} value={self.description.clone()} oninput={ctx.link().callback(|e: InputEvent| {
                                 let input: web_sys::HtmlTextAreaElement = e.target_unchecked_into();
                                 Msg::ChangeDescription(input.value())
                             })} />
-                            <img class={stylist::css!("width: 55%; height: 55%;bject-fit: cover;")} src={format!("data:image/png;base64,{}", base64::encode(self.preview.clone()))}/>
-                            <p>{ "Choose a file to upload" }</p>
-                            <input type="file" multiple=false onchange={ctx.link().callback(move |e: Event| {
-                                    let mut result = Vec::new();
-                                    let input: web_sys::HtmlInputElement = e.target_unchecked_into();
+                            <div class={stylist::css!("width: 250px; height: 250px; margin-left: 20px;")}>
+                                <img class={stylist::css!("width: 55%; height: 55%;bject-fit: cover;")} src={format!("data:image/png;base64,{}", base64::encode(self.preview.clone()))}/>
+                                <p>{ "Choose a file to upload" }</p>
+                                <input type="file" multiple=false onchange={ctx.link().callback(move |e: Event| {
+                                        let mut result = Vec::new();
+                                        let input: web_sys::HtmlInputElement = e.target_unchecked_into();
 
-                                    if let Some(files) = input.files() {
-                                        let files = js_sys::try_iter(&files)
-                                            .unwrap()
-                                            .unwrap()
-                                            .map(|v| web_sys::File::from(v.unwrap()))
-                                            .map(File::from);
-                                        result.extend(files);
-                                    }
-                                    Msg::Files(result)
-                                })}
-                            />
+                                        if let Some(files) = input.files() {
+                                            let files = js_sys::try_iter(&files)
+                                                .unwrap()
+                                                .unwrap()
+                                                .map(|v| web_sys::File::from(v.unwrap()))
+                                                .map(File::from);
+                                            result.extend(files);
+                                        }
+                                        Msg::Files(result)
+                                    })}
+                                />
+                            </div>
                             <br/>
                             <button onclick={ctx.link().callback(|_|{
                                 Msg::AddMob
@@ -645,13 +653,19 @@ impl Component for AddNew {
                     .collect::<Html>();
                 html! {
                 <div>
+                    <label for="name">{"Name:"} </label>
+                        <input value={self.loot_name.clone()} type="text" name="name" id="name" oninput={ctx.link().callback(|e: InputEvent| {
+                            let input: web_sys::HtmlInputElement = e.target_unchecked_into();
+                            Msg::ChangeLoot(input.value())
+                    })}/>
                     <div id="dropdown" class="dropdown">
                         <button class="adapt_list">{ "Games List "}</button>
                         <div id="content" class="content">
                             {games}//добавить добавить
                         </div>
                     </div>
-                    <select multiple=true onchange={
+                    <br/>
+                    <select class={stylist::css!("witdh: 100px;height: 100px;")} multiple=true onchange={
                         ctx.link().callback(|e: Event| {
                             let select: web_sys::HtmlSelectElement = e.target_unchecked_into();
                             let mut selected = Vec::new();
@@ -664,7 +678,7 @@ impl Component for AddNew {
                     })}>
                         {locations}
                     </select>
-                    <select multiple=true onchange={
+                    <select class={stylist::css!("witdh: 100px;height: 100px; margin-left: 50px;")} multiple=true onchange={
                         ctx.link().callback(|e: Event| {
                             let select: web_sys::HtmlSelectElement = e.target_unchecked_into();
                             let mut selected = Vec::new();
@@ -677,33 +691,30 @@ impl Component for AddNew {
                     })}>
                         {mobs}
                     </select>
-                    <label for="name">{"Name:"} </label>
-                        <input value={self.loot_name.clone()} type="text" name="name" id="name" oninput={ctx.link().callback(|e: InputEvent| {
-                            let input: web_sys::HtmlInputElement = e.target_unchecked_into();
-                            Msg::ChangeLoot(input.value())
-                        })}/>
                         <br/>
-                        <textarea value={self.description.clone()} oninput={ctx.link().callback(|e: InputEvent| {
+                        <textarea class={stylist::css!("witdh: 100px;height: 100px;")} value={self.description.clone()} oninput={ctx.link().callback(|e: InputEvent| {
                             let input: web_sys::HtmlTextAreaElement = e.target_unchecked_into();
                             Msg::ChangeDescription(input.value())
                         })} />
-                        <img class={stylist::css!("width: 55%; height: 55%;bject-fit: cover;")} src={format!("data:image/png;base64,{}", base64::encode(self.preview.clone()))}/>
-                        <p>{ "Choose a file to upload" }</p>
-                        <input type="file" multiple=false onchange={ctx.link().callback(move |e: Event| {
-                                let mut result = Vec::new();
-                                let input: web_sys::HtmlInputElement = e.target_unchecked_into();
+                        <div class={stylist::css!("width: 250px; height: 250px; margin-left: 20px;")}>
+                            <img class={stylist::css!("width: 55%; height: 55%;bject-fit: cover;")} src={format!("data:image/png;base64,{}", base64::encode(self.preview.clone()))}/>
+                            <p>{ "Choose a file to upload" }</p>
+                            <input type="file" multiple=false onchange={ctx.link().callback(move |e: Event| {
+                                    let mut result = Vec::new();
+                                    let input: web_sys::HtmlInputElement = e.target_unchecked_into();
 
-                                if let Some(files) = input.files() {
-                                    let files = js_sys::try_iter(&files)
-                                        .unwrap()
-                                        .unwrap()
-                                        .map(|v| web_sys::File::from(v.unwrap()))
-                                        .map(File::from);
-                                    result.extend(files);
-                                }
-                                Msg::Files(result)
-                            })}
-                        />
+                                    if let Some(files) = input.files() {
+                                        let files = js_sys::try_iter(&files)
+                                            .unwrap()
+                                            .unwrap()
+                                            .map(|v| web_sys::File::from(v.unwrap()))
+                                            .map(File::from);
+                                        result.extend(files);
+                                    }
+                                    Msg::Files(result)
+                                })}
+                            />
+                        </div>
                         <br/>
                         <button onclick={ctx.link().callback(|_|{
                             Msg::AddLoot
@@ -715,7 +726,7 @@ impl Component for AddNew {
         html! {
             <>
                 <div id="main_div" class="main_div">
-                    <center class={stylist::css!("width:100%;height:100%;margin-top: 10%;")}>
+                    <center class={stylist::css!("width:100%;height:100%;margin-top: 30%;")}>
                         <p>{"Please select what your want to add:"}</p>
                         <input type="radio" id="games" value="Games" name="state" onclick={ctx.link().callback(|_|{
                             Msg::ChangeState(State::Game)

@@ -366,7 +366,7 @@ impl Component for Delete {
         };
         html! {<>
             <div id="main_div" class="main_div">
-            <center class={stylist::css!("width: 100%; height: 100%;margin-top: 10%;")}>
+            <center class={stylist::css!("width: 100%; height: 100%;margin-top: 30%;")}>
                 <p>{"Please select what your want to add:"}</p>
                 <input type="radio" id="games" value="Games" name="state" onclick={ctx.link().callback(|_|{
                     Msg::ChangeState(State::Game)

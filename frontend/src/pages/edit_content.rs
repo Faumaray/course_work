@@ -213,7 +213,7 @@ impl Component for EditContent {
                 html! {
                     <div class="inner">
                         <center>
-                            <textarea value={self.description.clone()} oninput={ctx.link().callback(|e: InputEvent| {
+                            <textarea class={stylist::css!("width: 40%; height:30%;")} value={self.description.clone()} oninput={ctx.link().callback(|e: InputEvent| {
                                 let input: web_sys::HtmlTextAreaElement = e.target_unchecked_into();
                                 Msg::DescChange(input.value())
                             })} />
@@ -263,7 +263,7 @@ impl Component for EditContent {
             </div>
             <stylist::yew::Global css=r#"
             .inner{
-                margin-top: 20%;
+                margin-top: 30%;
                 margin-left: 15%;
                 margin-right: 15%;
             }
