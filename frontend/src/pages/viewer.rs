@@ -395,12 +395,11 @@ impl Component for Viewer {
                 </footer>
                 <stylist::yew::Global css=r#"
                 .head {
-                    margin-bottom: 10px;
+                    margin-bottom: 20px;
                     display: flex;
                     justify-content: center;
                     position: fixed;
-                    width: 100%;
-                    background: #fff;
+                    width: 70%;
                     align-items: center;
                     margin-left: 15%;
                     margin-right: 15%;
@@ -409,8 +408,7 @@ impl Component for Viewer {
                     display: flex;
                     justify-content: center;
                     position: fixed;
-                    width: 100%;
-                    background: #fff;
+                    width: 70%;
                     align-items: center;
                     margin-left: 15%;
                     margin-right: 15%;
