@@ -466,7 +466,7 @@ impl Component for AddNew {
             State::Unknown => html! {},
             State::Game => {
                 html! {
-                    <div>
+                    <div class={stylist::css!("height: 100%; margin-bottom: 10%;")}>
                         <label for="name">{"Edit Name:"} </label>
                         <input value={self.game_name.clone()} type="text" name="name" id="name" oninput={ctx.link().callback(|e: InputEvent| {
                             let input: web_sys::HtmlInputElement = e.target_unchecked_into();
@@ -493,7 +493,7 @@ impl Component for AddNew {
                     .collect::<Html>();
 
                 html! {
-                    <div>
+                    <div class={stylist::css!("height: 100%; margin-bottom: 10%;")}>
                         <label for="name">{"Name:"} </label>
                             <input value={self.location_name.clone()} type="text" name="name" id="name" oninput={ctx.link().callback(|e: InputEvent| {
                                 let input: web_sys::HtmlInputElement = e.target_unchecked_into();
@@ -562,7 +562,7 @@ impl Component for AddNew {
                     })
                     .collect::<Html>();
                 html! {
-                    <div>
+                    <div class={stylist::css!("height: 100%; margin-bottom: 10%;")}>
                         <label for="name">{"Name:"} </label>
                         <input value={self.mob_name.clone()} type="text" name="name" id="name" oninput={ctx.link().callback(|e: InputEvent| {
                                 let input: web_sys::HtmlInputElement = e.target_unchecked_into();
@@ -653,7 +653,7 @@ impl Component for AddNew {
                     })
                     .collect::<Html>();
                 html! {
-                <div>
+                <div class={stylist::css!("height: 100%; margin-bottom: 10%;")}>
                     <label for="name">{"Name:"} </label>
                         <input value={self.loot_name.clone()} type="text" name="name" id="name" oninput={ctx.link().callback(|e: InputEvent| {
                             let input: web_sys::HtmlInputElement = e.target_unchecked_into();

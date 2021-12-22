@@ -349,7 +349,7 @@ impl Component for Viewer {
                             {games}
                         </nav>
                 </header>
-            <div class={stylist::css!("margin-top: 2%;")}>
+            <div>
                 <div id="main_div" class="main_div">
                             <div class="locations_div">
                                 <ul class="locations_list">
@@ -385,7 +385,7 @@ impl Component for Viewer {
 
                 <stylist::yew::Global css=r#"
                 .head {
-                    margin-top: 18%;
+                    margin-top: 20%;
                     display: flex;
                     justify-content: space-between;
                     align-items: center;
@@ -408,6 +408,11 @@ impl Component for Viewer {
                     text-decoration: none;
                     font-family: helvetica;
                     letter-spacing: 2px;
+                  }
+                  .navigation a{
+                      border-style: inset;
+                      border-color: orange;
+                      border-radius: 5px;
                   }
                   .navigation a:hover {
                     background-color: #ddd;
