@@ -1,0 +1,33 @@
+name: Rust
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+    - uses: actions/setup-node@v2.5.0
+    - name: install cargo-make
+      run: cargo install cargo-make
+    - name: install rollup  
+      run: npm install --global rollup
+    - name: install wasm-pack
+      run: cargo install wasm-pack
+    - name: build client
+      run: cargo make build_client
+    - name: rollup
+      run: cargo make rollup
+    - name: build server
+      run: cargo make build_server
+    - name: Run tests
+      run: cargo test --verbose
