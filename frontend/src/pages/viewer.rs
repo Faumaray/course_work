@@ -265,10 +265,10 @@ impl Component for Viewer {
             .iter()
             .map(|game| {
                 html! {
-                     <input type="button" value={game.clone()} class="games_button"  onclick={ctx.link().callback(|e: MouseEvent| {
-                        let input: HtmlInputElement = e.target_unchecked_into();
-                        Msg::GameChange(input.value())
-                    })}/>
+                     <a type="button" onclick={ctx.link().callback(|e: MouseEvent| {
+                        let input: HtmlLinkElement = e.target_unchecked_into();
+                        Msg::GameChange(input.inner_text())
+                    })}>{game.clone()}</a>
                 }
             })
             .collect::<Html>();
@@ -346,7 +346,9 @@ impl Component for Viewer {
             <div class={css!("margin-top: 10%;")}>
                 <header class={css!("margin-bottom: 10px;")}>
                     <center>
-                        {games}
+                        <nav>
+                            {games}
+                        </nav>
                     </center>
                 </header>
 
@@ -383,16 +385,55 @@ impl Component for Viewer {
                 </div>
                 <footer>
                     <center>
-                        <a onclick={ctx.link().callback(|e: MouseEvent| {
-                            let input: HtmlLinkElement = e.target_unchecked_into();
-                            Msg::AddNew
-                        })}>{"Add new"}</a><a onclick={ctx.link().callback(|e: MouseEvent| {
-                            let input: HtmlLinkElement = e.target_unchecked_into();
-                            Msg::Delete
-                        })}>{"Delete"}</a>
+                        <nav>
+                            <a onclick={ctx.link().callback(|e: MouseEvent| {
+                                let input: HtmlLinkElement = e.target_unchecked_into();
+                                Msg::AddNew
+                            })}>{"Add new"}</a>
+                            <a onclick={ctx.link().callback(|e: MouseEvent| {
+                                let input: HtmlLinkElement = e.target_unchecked_into();
+                                Msg::Delete
+                            })}>{"Delete"}</a>
+                        </nav>
                     </center>
                 </footer>
                 <stylist::yew::Global css=r#"
+                header, footer {
+                    display: flex;
+                    justify-content: center;
+                    position: fixed;
+                    width: 100%;
+                    background: #fff;
+                    align-items: center;
+                    margin-left: 15%;
+                    margin-right: 15%;
+                }
+                @media (max-width: 900px) {
+                    nav { position: static; transform: translateY(0); }
+                    header { justify-content: space-between; }
+                    footer { justify-content: space-between; }
+                  }
+                 
+                     nav a {
+                         float: left;
+                         display: block;
+                         color: orange;
+                         text-align: center;
+                         padding: 14px 16px;
+                         text-decoration: none;
+                         font-size 17px;
+                         font-family: helvetica;
+                         letter-spacing: 2px;
+                     }
+                 
+                     nav li, nav ul{
+                         list-style: none;
+                     }
+                 
+                     nav a:hover {
+                         background-color: #ddd;
+                         color: black;
+                     }
                 .edit{
                     font-size: 14px;
                     color: blue;
