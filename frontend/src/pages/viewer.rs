@@ -265,7 +265,7 @@ impl Component for Viewer {
             .iter()
             .map(|game| {
                 html! {
-                     <a type="button" onclick={ctx.link().callback(|e: MouseEvent| {
+                     <a onclick={ctx.link().callback(|e: MouseEvent| {
                         let input: HtmlLinkElement = e.target_unchecked_into();
                         Msg::GameChange(input.inner_text())
                     })}>{game.clone()}</a>
@@ -344,9 +344,9 @@ impl Component for Viewer {
 
         html! {
             <div class={css!("margin-top: 10%;")}>
-                <header class={css!("margin-bottom: 10px;")}>
+                <header class={css!("margin-bottom: 10px; justify-content: space-between;")}>
                     <center>
-                        <nav class="nav">
+                        <nav class="navigation">
                             {games}
                         </nav>
                     </center>
@@ -383,9 +383,9 @@ impl Component for Viewer {
                                 </div>
                             </div>
                 </div>
-                <footer>
+                <footer class={stylist::css!("justify-content: space-between;")}>
                     <center>
-                        <nav class="nav">
+                        <nav class="navigation">
                             <a onclick={ctx.link().callback(|e: MouseEvent| {
                                 let input: HtmlLinkElement = e.target_unchecked_into();
                                 Msg::AddNew
@@ -408,13 +408,7 @@ impl Component for Viewer {
                     margin-left: 15%;
                     margin-right: 15%;
                 }
-                @media (max-width: 900px) {
-                    .nav { position: static; transform: translateY(0); }
-                    header { justify-content: space-between; }
-                    footer { justify-content: space-between; }
-                  }
-                 
-                .nav a {
+                .navigation{
                     float: left;
                     display: block;
                     color: orange;
@@ -425,12 +419,7 @@ impl Component for Viewer {
                     font-family: helvetica;
                     letter-spacing: 2px;
                 }
-                 
-                .nav li, nav ul{
-                    list-style: none;
-                }
-                 
-                .nav a:hover {
+                .navigation a:hover {
                     background-color: #ddd;
                     color: black;
                 }

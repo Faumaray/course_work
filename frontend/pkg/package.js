@@ -823,16 +823,16 @@
             var ret = makeMutClosure(arg0, arg1, 48, __wbg_adapter_30);
             return addHeapObject(ret);
         };
-        imports.wbg.__wbindgen_closure_wrapper1432 = function(arg0, arg1, arg2) {
-            var ret = makeMutClosure(arg0, arg1, 568, __wbg_adapter_33);
+        imports.wbg.__wbindgen_closure_wrapper1433 = function(arg0, arg1, arg2) {
+            var ret = makeMutClosure(arg0, arg1, 569, __wbg_adapter_33);
             return addHeapObject(ret);
         };
-        imports.wbg.__wbindgen_closure_wrapper1633 = function(arg0, arg1, arg2) {
-            var ret = makeClosure(arg0, arg1, 610, __wbg_adapter_36);
+        imports.wbg.__wbindgen_closure_wrapper1634 = function(arg0, arg1, arg2) {
+            var ret = makeClosure(arg0, arg1, 611, __wbg_adapter_36);
             return addHeapObject(ret);
         };
-        imports.wbg.__wbindgen_closure_wrapper1792 = function(arg0, arg1, arg2) {
-            var ret = makeMutClosure(arg0, arg1, 651, __wbg_adapter_39);
+        imports.wbg.__wbindgen_closure_wrapper1793 = function(arg0, arg1, arg2) {
+            var ret = makeMutClosure(arg0, arg1, 652, __wbg_adapter_39);
             return addHeapObject(ret);
         };
 
