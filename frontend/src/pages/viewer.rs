@@ -346,7 +346,7 @@ impl Component for Viewer {
             <div class={css!("margin-top: 10%;")}>
                 <header class={css!("margin-bottom: 10px;")}>
                     <center>
-                        <nav>
+                        <nav class="nav">
                             {games}
                         </nav>
                     </center>
@@ -385,7 +385,7 @@ impl Component for Viewer {
                 </div>
                 <footer>
                     <center>
-                        <nav>
+                        <nav class="nav">
                             <a onclick={ctx.link().callback(|e: MouseEvent| {
                                 let input: HtmlLinkElement = e.target_unchecked_into();
                                 Msg::AddNew
@@ -409,31 +409,31 @@ impl Component for Viewer {
                     margin-right: 15%;
                 }
                 @media (max-width: 900px) {
-                    nav { position: static; transform: translateY(0); }
+                    .nav { position: static; transform: translateY(0); }
                     header { justify-content: space-between; }
                     footer { justify-content: space-between; }
                   }
                  
-                     nav a {
-                         float: left;
-                         display: block;
-                         color: orange;
-                         text-align: center;
-                         padding: 14px 16px;
-                         text-decoration: none;
-                         font-size 17px;
-                         font-family: helvetica;
-                         letter-spacing: 2px;
-                     }
+                .nav a {
+                    float: left;
+                    display: block;
+                    color: orange;
+                    text-align: center;
+                    padding: 14px 16px;
+                    text-decoration: none;
+                    font-size 17px;
+                    font-family: helvetica;
+                    letter-spacing: 2px;
+                }
                  
-                     nav li, nav ul{
-                         list-style: none;
-                     }
+                .nav li, nav ul{
+                    list-style: none;
+                }
                  
-                     nav a:hover {
-                         background-color: #ddd;
-                         color: black;
-                     }
+                .nav a:hover {
+                    background-color: #ddd;
+                    color: black;
+                }
                 .edit{
                     font-size: 14px;
                     color: blue;
