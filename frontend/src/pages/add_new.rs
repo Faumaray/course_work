@@ -9,8 +9,12 @@ pub struct AddNew {
     location_list: Vec<String>,
     mob_list: Vec<String>,
     game_name: Option<String>,
-    location_name: Vec<String>,
-    mob_name: Vec<String>,
+    locations_name: Vec<String>,
+    location_name: String,
+    selected_locations: Vec<String>,
+    selected_mobs: Vec<String>,
+    mob_name: String,
+    mobs_name: Vec<String>,
     loot_name: Option<String>,
     description: Option<String>,
     preview: Vec<u8>,
@@ -27,8 +31,15 @@ pub enum Msg {
     AddLocation,
     AddMob,
     AddLoot,
+    GetLocationList,
+    SetSelectedLocations(Vec<String>),
+    SetSelectedMobs(Vec<String>),
     ChangeState(State),
     ChangeGame(String),
+    ChangeLocation(String),
+    ChangeMob(String),
+    ChangeLoot(String),
+    ChangeDescription(String),
 }
 enum State {
     Unknown,
@@ -55,11 +66,15 @@ impl Component for AddNew {
     fn create(ctx: &Context<Self>) -> Self {
         Self {
             game_name: None,
-            location_name: Vec::new(),
-            mob_name: Vec::new(),
+            locations_name: Vec::new(),
+            location_name: String::new(),
+            mob_name: String::new(),
+            mobs_name: Vec::new(),
             loot_name: None,
             description: None,
             preview: Vec::new(),
+            selected_locations: Vec::new(),
+            selected_mobs: Vec::new(),
             game_list: Vec::new(),
             location_list: Vec::new(),
             mob_list: Vec::new(),
@@ -102,9 +117,13 @@ impl Component for AddNew {
                     }
                     middleware::AddRequest::GetLocationList => {
                         self.location_list = body.location_list.unwrap();
+                        self.mob_list = Vec::new();
+                        self.selected_mobs = Vec::new();
+                        self.selected_locations = Vec::new();
                     }
                     middleware::AddRequest::GetMobList => {
                         self.mob_list = body.mob_list.unwrap();
+                        self.selected_mobs = Vec::new();
                     }
                     middleware::AddRequest::Error => todo!(),
                     _ => {
@@ -115,7 +134,99 @@ impl Component for AddNew {
                 },
                 Err(err) => return false,
             },
-            Msg::ChangeGame(name) => self.game_name = Some(name),
+            Msg::ChangeGame(name) => {
+                self.game_name = Some(name);
+                match self.state {
+                    State::Game => return true,
+                    State::Location => return true,
+                    State::Unknown => return true,
+                    _ => {
+                        let body = serde_json::to_string(&middleware::AddBody {
+                            kind: middleware::AddRequest::GetLocationList,
+                            game_list: None,
+                            location_list: None,
+                            mob_list: None,
+                            game_name: self.game_name.clone(),
+                            location_name: None,
+                            mob_name: None,
+                            loot_name: None,
+                            description: None,
+                            preview: None,
+                        })
+                        .unwrap();
+                        ctx.link().send_future(async move {
+                            let data = fetch(body).await;
+                            Msg::ReceiveResponse(data)
+                        });
+                        return true;
+                    }
+                }
+            }
+            Msg::ChangeLocation(name) => {
+                self.location_name = name.clone();
+            }
+            Msg::ChangeDescription(desc) => {
+                self.description = Some(desc.clone());
+            }
+            Msg::ChangeMob(name) => {
+                self.mob_name = name.clone();
+            }
+            Msg::ChangeLoot(name) => {
+                self.loot_name = Some(name.clone());
+            }
+            Msg::SetSelectedLocations(vc) => {
+                self.selected_locations = vc.clone();
+                match self.state {
+                    State::Game => return true,
+                    State::Location => return true,
+                    State::Mob => return true,
+                    State::Unknown => return true,
+                    _ => {
+                        let body = serde_json::to_string(&middleware::AddBody {
+                            kind: middleware::AddRequest::GetMobList,
+                            game_list: None,
+                            location_list: None,
+                            mob_list: None,
+                            game_name: None,
+                            location_name: Some(vc.clone()),
+                            mob_name: None,
+                            loot_name: None,
+                            description: None,
+                            preview: None,
+                        })
+                        .unwrap();
+                        ctx.link().send_future(async move {
+                            let data = fetch(body).await;
+                            Msg::ReceiveResponse(data)
+                        });
+                    }
+                }
+            }
+            Msg::SetSelectedMobs(vc) => {
+                self.selected_mobs = vc.clone();
+                return true;
+            }
+            Msg::GetLocationList => {
+                if self.game_name.is_some() {
+                    let body = serde_json::to_string(&middleware::AddBody {
+                        kind: middleware::AddRequest::GetLocationList,
+                        game_list: None,
+                        location_list: None,
+                        mob_list: None,
+                        game_name: self.game_name.clone(),
+                        location_name: None,
+                        mob_name: None,
+                        loot_name: None,
+                        description: None,
+                        preview: None,
+                    })
+                    .unwrap();
+                    ctx.link().send_future(async move {
+                        let data = fetch(body).await;
+                        Msg::ReceiveResponse(data)
+                    });
+                }
+            }
             Msg::AddGame => {
                 let body = serde_json::to_string(&middleware::AddBody {
                     kind: middleware::AddRequest::AddGame,
@@ -135,9 +246,123 @@ impl Component for AddNew {
                     Msg::ReceiveResponse(data)
                 });
             }
-            Msg::AddLocation => todo!(),
-            Msg::AddMob => todo!(),
-            Msg::AddLoot => todo!(),
+            Msg::AddLocation => {
+                if self.preview.len() > 0 {
+                    let body = serde_json::to_string(&middleware::AddBody {
+                        kind: middleware::AddRequest::AddLocation,
+                        game_list: None,
+                        location_list: None,
+                        mob_list: None,
+                        game_name: self.game_name.clone(),
+                        location_name: Some(vec![self.location_name.clone()]),
+                        mob_name: None,
+                        loot_name: None,
+                        description: self.description.clone(),
+                        preview: Some(self.preview.clone()),
+                    })
+                    .unwrap();
+                    ctx.link().send_future(async move {
+                        let data = fetch(body).await;
+                        Msg::ReceiveResponse(data)
+                    });
+                } else {
+                    let body = serde_json::to_string(&middleware::AddBody {
+                        kind: middleware::AddRequest::AddLocation,
+                        game_list: None,
+                        location_list: None,
+                        mob_list: None,
+                        game_name: self.game_name.clone(),
+                        location_name: Some(vec![self.location_name.clone()]),
+                        mob_name: None,
+                        loot_name: None,
+                        description: self.description.clone(),
+                        preview: None,
+                    })
+                    .unwrap();
+                    ctx.link().send_future(async move {
+                        let data = fetch(body).await;
+                        Msg::ReceiveResponse(data)
+                    });
+                }
+            }
+            Msg::AddMob => {
+                if self.preview.len() > 0 {
+                    let body = serde_json::to_string(&middleware::AddBody {
+                        kind: middleware::AddRequest::AddMob,
+                        game_list: None,
+                        location_list: None,
+                        mob_list: None,
+                        game_name: None,
+                        location_name: Some(self.selected_locations.clone()),
+                        mob_name: Some(vec![self.mob_name.clone()]),
+                        loot_name: None,
+                        description: self.description.clone(),
+                        preview: Some(self.preview.clone()),
+                    })
+                    .unwrap();
+                    ctx.link().send_future(async move {
+                        let data = fetch(body).await;
+                        Msg::ReceiveResponse(data)
+                    });
+                } else {
+                    let body = serde_json::to_string(&middleware::AddBody {
+                        kind: middleware::AddRequest::AddMob,
+                        game_list: None,
+                        location_list: None,
+                        mob_list: None,
+                        game_name: None,
+                        location_name: Some(self.selected_locations.clone()),
+                        mob_name: Some(vec![self.mob_name.clone()]),
+                        loot_name: None,
+                        description: self.description.clone(),
+                        preview: None,
+                    })
+                    .unwrap();
+                    ctx.link().send_future(async move {
+                        let data = fetch(body).await;
+                        Msg::ReceiveResponse(data)
+                    });
+                }
+            }
+            Msg::AddLoot => {
+                if self.preview.len() > 0 {
+                    let body = serde_json::to_string(&middleware::AddBody {
+                        kind: middleware::AddRequest::AddLoot,
+                        game_list: None,
+                        location_list: None,
+                        mob_list: None,
+                        game_name: None,
+                        location_name: Some(self.selected_locations.clone()),
+                        mob_name: Some(self.selected_mobs.clone()),
+                        loot_name: self.loot_name.clone(),
+                        description: self.description.clone(),
+                        preview: Some(self.preview.clone()),
+                    })
+                    .unwrap();
+                    ctx.link().send_future(async move {
+                        let data = fetch(body).await;
+                        Msg::ReceiveResponse(data)
+                    });
+                } else {
+                    let body = serde_json::to_string(&middleware::AddBody {
+                        kind: middleware::AddRequest::AddLoot,
+                        game_list: None,
+                        location_list: None,
+                        mob_list: None,
+                        game_name: None,
+                        location_name: Some(self.selected_locations.clone()),
+                        mob_name: Some(self.selected_mobs.clone()),
+                        loot_name: self.loot_name.clone(),
+                        description: self.description.clone(),
+                        preview: None,
+                    })
+                    .unwrap();
+                    ctx.link().send_future(async move {
+                        let data = fetch(body).await;
+                        Msg::ReceiveResponse(data)
+                    });
+                }
+            }
             Msg::ChangeState(state) => {
                 match state {
                     State::Unknown => todo!(),
@@ -147,7 +372,8 @@ impl Component for AddNew {
                     }
                     State::Location => {
                         self.game_name = None;
-                        self.location_name = Vec::new();
+                        self.locations_name = Vec::new();
+                        self.location_name = String::new();
                         self.description = None;
                         self.preview = Vec::new();
                         self.game_list = Vec::new();
@@ -172,13 +398,31 @@ impl Component for AddNew {
                     }
                     State::Mob => {
                         self.game_name = None;
-                        self.location_name = Vec::new();
-                        self.mob_name = Vec::new();
+                        self.mob_name = String::new();
+                        self.locations_name = Vec::new();
+                        self.mobs_name = Vec::new();
                         self.description = None;
                         self.preview = Vec::new();
                         self.game_list = Vec::new();
                         self.location_list = Vec::new();
                         self.state = state;
+                        let body = serde_json::to_string(&middleware::AddBody {
+                            kind: middleware::AddRequest::GetGameList,
+                            game_list: None,
+                            location_list: None,
+                            mob_list: None,
+                            game_name: None,
+                            location_name: None,
+                            mob_name: None,
+                            loot_name: None,
+                            description: None,
+                            preview: None,
+                        })
+                        .unwrap();
+                        ctx.link().send_future(async move {
+                            let data = fetch(body).await;
+                            Msg::ReceiveResponse(data)
+                        });
                     }
                     State::Loot => {
                         self.game_name = None;
@@ -189,6 +433,23 @@ impl Component for AddNew {
                         self.location_list = Vec::new();
                         self.mob_list = Vec::new();
                         self.state = state;
+                        let body = serde_json::to_string(&middleware::AddBody {
+                            kind: middleware::AddRequest::GetGameList,
+                            game_list: None,
+                            location_list: None,
+                            mob_list: None,
+                            game_name: None,
+                            location_name: None,
+                            mob_name: None,
+                            loot_name: None,
+                            description: None,
+                            preview: None,
+                        })
+                        .unwrap();
+                        ctx.link().send_future(async move {
+                            let data = fetch(body).await;
+                            Msg::ReceiveResponse(data)
+                        });
                     }
                 }
                 return true;
@@ -230,24 +491,231 @@ impl Component for AddNew {
                         }
                     })
                     .collect::<Html>();
+
                 html! {
                     <div>
                         <div id="dropdown" class="dropdown">
+                            <button class="adapt_list">{ "Games List "}</button>
+                            <div id="content" class="content">
+                                {games}//добавить добавить
+                            </div>
+                        </div>
+
+                        <label for="name">{"Name:"} </label>
+                            <input value={self.location_name.clone()} type="text" name="name" id="name" oninput={ctx.link().callback(|e: InputEvent| {
+                                let input: web_sys::HtmlInputElement = e.target_unchecked_into();
+                                Msg::ChangeLocation(input.value())
+                            })}/>
+                            <br/>
+                            <textarea value={self.description.clone()} oninput={ctx.link().callback(|e: InputEvent| {
+                                let input: web_sys::HtmlTextAreaElement = e.target_unchecked_into();
+                                Msg::ChangeDescription(input.value())
+                            })} />
+                            <img class={stylist::css!("width: 55%; height: 55%;bject-fit: cover;")} src={format!("data:image/png;base64,{}", base64::encode(self.preview.clone()))}/>
+                            <p>{ "Choose a file to upload" }</p>
+                            <input type="file" multiple=false onchange={ctx.link().callback(move |e: Event| {
+                                    let mut result = Vec::new();
+                                    let input: web_sys::HtmlInputElement = e.target_unchecked_into();
+
+                                    if let Some(files) = input.files() {
+                                        let files = js_sys::try_iter(&files)
+                                            .unwrap()
+                                            .unwrap()
+                                            .map(|v| web_sys::File::from(v.unwrap()))
+                                            .map(File::from);
+                                        result.extend(files);
+                                    }
+                                    Msg::Files(result)
+                                })}
+                            />
+                            <br/>
+                            <button onclick={ctx.link().callback(|_|{
+                                Msg::AddLocation
+                            })}>{"Submit"}</button>
+                    </div>
+                }
+            }
+            State::Mob => {
+                let locations = self
+                    .location_list
+                    .iter()
+                    .map(|location| {
+                        html! {
+                             <option value={location.clone()}>{location.clone()}</option>
+                        }
+                    })
+                    .collect::<Html>();
+                let games = self
+                    .game_list
+                    .iter()
+                    .map(|game| {
+                        html! {
+                             <a  onclick={ctx.link().callback(|e: MouseEvent| {
+                                let input: web_sys::HtmlLinkElement = e.target_unchecked_into();
+                                Msg::ChangeGame(input.inner_text())
+                            })}>{game.clone()}</a>
+                        }
+                    })
+                    .collect::<Html>();
+                html! {
+                    <div>
+                        <div id="dropdown" class="dropdown">
+                            <button class="adapt_list">{ "Games List "}</button>
+                            <div id="content" class="content">
+                                {games}//добавить добавить
+                            </div>
+                        </div>
+                        <select multiple=true onchange={
+                            ctx.link().callback(|e: Event| {
+                                let select: web_sys::HtmlSelectElement = e.target_unchecked_into();
+                                let mut selected = Vec::new();
+                                for index in 0..select.selected_options().length()
+                                {
+                                    let input: web_sys::Element = select.item(index).unwrap();
+                                    selected.push(input.text_content().unwrap_or_default());
+                                };
+                                Msg::SetSelectedLocations(selected.clone())
+                        })}>
+                            {locations}
+                        </select>
+                        <label for="name">{"Name:"} </label>
+                            <input value={self.mob_name.clone()} type="text" name="name" id="name" oninput={ctx.link().callback(|e: InputEvent| {
+                                let input: web_sys::HtmlInputElement = e.target_unchecked_into();
+                                Msg::ChangeMob(input.value())
+                            })}/>
+                            <br/>
+                            <textarea value={self.description.clone()} oninput={ctx.link().callback(|e: InputEvent| {
+                                let input: web_sys::HtmlTextAreaElement = e.target_unchecked_into();
+                                Msg::ChangeDescription(input.value())
+                            })} />
+                            <img class={stylist::css!("width: 55%; height: 55%;bject-fit: cover;")} src={format!("data:image/png;base64,{}", base64::encode(self.preview.clone()))}/>
+                            <p>{ "Choose a file to upload" }</p>
+                            <input type="file" multiple=false onchange={ctx.link().callback(move |e: Event| {
+                                    let mut result = Vec::new();
+                                    let input: web_sys::HtmlInputElement = e.target_unchecked_into();
+
+                                    if let Some(files) = input.files() {
+                                        let files = js_sys::try_iter(&files)
+                                            .unwrap()
+                                            .unwrap()
+                                            .map(|v| web_sys::File::from(v.unwrap()))
+                                            .map(File::from);
+                                        result.extend(files);
+                                    }
+                                    Msg::Files(result)
+                                })}
+                            />
+                            <br/>
+                            <button onclick={ctx.link().callback(|_|{
+                                Msg::AddMob
+                            })}>{"Submit"}</button>
+                    </div>
+                }
+            }
+            State::Loot => {
+                let locations = self
+                    .location_list
+                    .iter()
+                    .map(|location| {
+                        html! {
+                             <option value={location.clone()}>{location.clone()}</option>
+                        }
+                    })
+                    .collect::<Html>();
+                let mobs = self
+                    .mob_list
+                    .iter()
+                    .map(|mob| {
+                        html! {
+                             <option value={mob.clone()}>{mob.clone()}</option>
+                        }
+                    })
+                    .collect::<Html>();
+                let games = self
+                    .game_list
+                    .iter()
+                    .map(|game| {
+                        html! {
+                             <a  onclick={ctx.link().callback(|e: MouseEvent| {
+                                let input: web_sys::HtmlLinkElement = e.target_unchecked_into();
+                                Msg::ChangeGame(input.inner_text())
+                            })}>{game.clone()}</a>
+                        }
+                    })
+                    .collect::<Html>();
+                html! {
+                <div>
+                    <div id="dropdown" class="dropdown">
                         <button class="adapt_list">{ "Games List "}</button>
                         <div id="content" class="content">
                             {games}//добавить добавить
                         </div>
-                        </div>
                     </div>
-                }
+                    <select multiple=true onchange={
+                        ctx.link().callback(|e: Event| {
+                            let select: web_sys::HtmlSelectElement = e.target_unchecked_into();
+                            let mut selected = Vec::new();
+                            for index in 0..select.selected_options().length()
+                            {
+                                let input: web_sys::Element = select.item(index).unwrap();
+                                selected.push(input.text_content().unwrap_or_default());
+                            };
+                            Msg::SetSelectedLocations(selected.clone())
+                    })}>
+                        {locations}
+                    </select>
+                    <select multiple=true onchange={
+                        ctx.link().callback(|e: Event| {
+                            let select: web_sys::HtmlSelectElement = e.target_unchecked_into();
+                            let mut selected = Vec::new();
+                            for index in 0..select.selected_options().length()
+                            {
+                                let input: web_sys::Element = select.item(index).unwrap();
+                                selected.push(input.text_content().unwrap_or_default());
+                            };
+                            Msg::SetSelectedMobs(selected.clone())
+                    })}>
+                        {mobs}
+                    </select>
+                    <label for="name">{"Name:"} </label>
+                        <input value={self.loot_name.clone()} type="text" name="name" id="name" oninput={ctx.link().callback(|e: InputEvent| {
+                            let input: web_sys::HtmlInputElement = e.target_unchecked_into();
+                            Msg::ChangeLoot(input.value())
+                        })}/>
+                        <br/>
+                        <textarea value={self.description.clone()} oninput={ctx.link().callback(|e: InputEvent| {
+                            let input: web_sys::HtmlTextAreaElement = e.target_unchecked_into();
+                            Msg::ChangeDescription(input.value())
+                        })} />
+                        <img class={stylist::css!("width: 55%; height: 55%;bject-fit: cover;")} src={format!("data:image/png;base64,{}", base64::encode(self.preview.clone()))}/>
+                        <p>{ "Choose a file to upload" }</p>
+                        <input type="file" multiple=false onchange={ctx.link().callback(move |e: Event| {
+                                let mut result = Vec::new();
+                                let input: web_sys::HtmlInputElement = e.target_unchecked_into();
+
+                                if let Some(files) = input.files() {
+                                    let files = js_sys::try_iter(&files)
+                                        .unwrap()
+                                        .unwrap()
+                                        .map(|v| web_sys::File::from(v.unwrap()))
+                                        .map(File::from);
+                                    result.extend(files);
+                                }
+                                Msg::Files(result)
+                            })}
+                        />
+                        <br/>
+                        <button onclick={ctx.link().callback(|_|{
+                            Msg::AddLoot
+                        })}>{"Submit"}</button>
+                </div>
+                    }
             }
-            State::Mob => todo!(),
-            State::Loot => todo!(),
         };
         html! {
             <>
                 <div id="main_div" class="main_div">
-                    <center class={stylist::css!("margin-top: 10%;")}>
+                    <center class={stylist::css!("width:100%;height:100%;margin-top: 10%;")}>
                         <p>{"Please select what your want to add:"}</p>
                         <input type="radio" id="games" value="Games" name="state" onclick={ctx.link().callback(|_|{
                             Msg::ChangeState(State::Game)

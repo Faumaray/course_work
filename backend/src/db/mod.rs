@@ -16,6 +16,16 @@ pub async fn estabilish_connection() -> DatabaseConnection {
 }
 
 //Игры
+pub async fn delete_game(connection: &DatabaseConnection, id: i32) -> Result<DeleteResult, DbErr> {
+    let game: Option<games::Model> = games::Entity::find_by_id(id).one(connection).await?;
+    let game: games::ActiveModel = game.unwrap().into();
+    locations::Entity::update_many()
+        .col_expr(locations::Column::Gameid, Expr::value(Value::Int(None)))
+        .filter(locations::Column::Gameid.eq(id))
+        .exec(connection)
+        .await?;
+    game.delete(connection).await
+}
 pub async fn get_all_games(
     connection: &DatabaseConnection, /*Входные для поиска */
 ) -> Result<Vec<games::Model>, DbErr> {
@@ -32,6 +42,29 @@ pub async fn add_game(connection: &DatabaseConnection, name: String) -> Result<(
 }
 
 //Локации
+pub async fn delete_location(
+    connection: &DatabaseConnection,
+    id: i32,
+) -> Result<DeleteResult, DbErr> {
+    let game: Option<locations::Model> = locations::Entity::find_by_id(id).one(connection).await?;
+    let game: locations::ActiveModel = game.unwrap().into();
+    mobs::Entity::update_many()
+        .col_expr(mobs::Column::Locationid, Expr::value(Value::Int(None)))
+        .filter(mobs::Column::Locationid.eq(id))
+        .exec(connection)
+        .await?;
+    loot::Entity::update_many()
+        .col_expr(loot::Column::Locationid, Expr::value(Value::Int(None)))
+        .filter(loot::Column::Locationid.eq(id))
+        .exec(connection)
+        .await?;
+    game.delete(connection).await
+}
+pub async fn get_all_locations(
+    connection: &DatabaseConnection,
+) -> Result<Vec<locations::Model>, DbErr> {
+    locations::Entity::find().all(connection).await
+}
 pub async fn get_location_by_name(
     connection: &DatabaseConnection,
     location_name: String,
@@ -115,7 +148,7 @@ pub async fn add_location(
             .is_none()
         {
             let location = locations::ActiveModel {
-                gameid: Set(game.id.to_owned()),
+                gameid: Set(Some(game.id.to_owned())),
                 location_name: Set(location_name.to_owned()),
                 descr: Set(description.to_owned()),
                 on_map: Set(Some(on_map.to_owned())),
@@ -131,6 +164,19 @@ pub async fn add_location(
 }
 
 //Мобы
+pub async fn delete_mob(connection: &DatabaseConnection, id: i32) -> Result<DeleteResult, DbErr> {
+    let game: Option<mobs::Model> = mobs::Entity::find_by_id(id).one(connection).await?;
+    let game: mobs::ActiveModel = game.unwrap().into();
+    loot::Entity::update_many()
+        .col_expr(loot::Column::Mobid, Expr::value(Value::Int(None)))
+        .filter(loot::Column::Mobid.eq(id))
+        .exec(connection)
+        .await?;
+    game.delete(connection).await
+}
+pub async fn get_all_mobs(connection: &DatabaseConnection) -> Result<Vec<mobs::Model>, DbErr> {
+    mobs::Entity::find().all(connection).await
+}
 pub async fn change_mob(
     connection: &DatabaseConnection,
     name: Option<String>,
@@ -207,6 +253,15 @@ pub async fn add_mob(
             }
         }
         mobs::Entity::insert_many(mobs).exec(connection).await?;
+    } else {
+        let mob = mobs::ActiveModel {
+            locationid: Set(None),
+            mob_name: Set(mob_name.clone().to_owned()),
+            desct: Set(description.clone().to_owned()),
+            preview: Set(preview.clone().to_owned()),
+            ..Default::default()
+        };
+        mobs::Entity::insert(mob).exec(connection).await?;
     }
     Ok(())
 }
@@ -215,13 +270,6 @@ pub async fn get_all_mobs_by_location(
     location: String, /*Входные для поиска */
 ) -> Result<Vec<mobs::Model>, DbErr> {
     if location.is_empty() {
-        println!(
-            "{:?}",
-            mobs::Entity::find()
-                .filter(Expr::col(mobs::Column::Locationid).is_null())
-                .build(DatabaseBackend::Postgres)
-                .to_string()
-        );
         mobs::Entity::find()
             .filter(Expr::col(mobs::Column::Locationid).is_null())
             .all(connection)
@@ -240,6 +288,14 @@ pub async fn get_all_mobs_by_location(
 }
 
 //Лут
+pub async fn delete_loot(connection: &DatabaseConnection, id: i32) -> Result<DeleteResult, DbErr> {
+    let game: Option<loot::Model> = loot::Entity::find_by_id(id).one(connection).await?;
+    let game: loot::ActiveModel = game.unwrap().into();
+    game.delete(connection).await
+}
+pub async fn get_all_loot(connection: &DatabaseConnection) -> Result<Vec<loot::Model>, DbErr> {
+    loot::Entity::find().all(connection).await
+}
 pub async fn add_loot(
     connection: &DatabaseConnection,
     loot_name: String,

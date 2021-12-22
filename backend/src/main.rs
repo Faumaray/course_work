@@ -11,6 +11,241 @@ async fn index() -> Result<NamedFile> {
     println!("Serving at 127.0.0.1:9999");
     Ok(NamedFile::open("./frontend/index.html")?)
 }
+#[post("/delete")]
+async fn delete(
+    data: Data<DatabaseState>,
+    request_data: Json<middleware::DeleteBody>,
+) -> impl Responder {
+    match request_data.kind {
+        middleware::DeleteRequest::Initial => {
+            let mut games: Vec<(i32, String)> = Vec::new();
+            let mut locations: Vec<(i32, i32, String)> = Vec::new();
+            let mut mobs: Vec<(i32, Option<i32>, String)> = Vec::new();
+            let mut loot: Vec<(i32, Option<i32>, Option<i32>, String)> = Vec::new();
+            match db::get_all_games(&data.connection).await {
+                Ok(list) => {
+                    for model in list {
+                        games.push((model.id, model.game_name));
+                    }
+                }
+                Err(err) => {
+                    println!("Games Error {}", err);
+                    return Json(middleware::DeleteBody {
+                        kind: middleware::DeleteRequest::Error,
+                        games: None,
+                        locations: None,
+                        mobs: None,
+                        loots: None,
+                        id: None,
+                        locationid: None,
+                        mobid: None,
+                        name: None,
+                    });
+                }
+            }
+            match db::get_all_locations(&data.connection).await {
+                Ok(list) => {
+                    for model in list {
+                        locations.push((
+                            model.id,
+                            model.gameid.unwrap_or_default(),
+                            model.location_name,
+                        ));
+                    }
+                }
+                Err(err) => {
+                    println!("Locs Error {}", err);
+                    return Json(middleware::DeleteBody {
+                        kind: middleware::DeleteRequest::Error,
+                        games: None,
+                        locations: None,
+                        mobs: None,
+                        loots: None,
+                        id: None,
+                        locationid: None,
+                        mobid: None,
+                        name: None,
+                    });
+                }
+            }
+            match db::get_all_mobs(&data.connection).await {
+                Ok(list) => {
+                    for model in list {
+                        mobs.push((model.id, model.locationid, model.mob_name));
+                    }
+                }
+                Err(err) => {
+                    println!("Mobs Error {}", err);
+                    return Json(middleware::DeleteBody {
+                        kind: middleware::DeleteRequest::Error,
+                        games: None,
+                        locations: None,
+                        mobs: None,
+                        loots: None,
+                        id: None,
+                        locationid: None,
+                        mobid: None,
+                        name: None,
+                    });
+                }
+            }
+            match db::get_all_loot(&data.connection).await {
+                Ok(list) => {
+                    for model in list {
+                        loot.push((model.id, model.locationid, model.mobid, model.loot_name));
+                    }
+                }
+                Err(err) => {
+                    println!("Loot Error {}", err);
+                    return Json(middleware::DeleteBody {
+                        kind: middleware::DeleteRequest::Error,
+                        games: None,
+                        locations: None,
+                        mobs: None,
+                        loots: None,
+                        id: None,
+                        locationid: None,
+                        mobid: None,
+                        name: None,
+                    });
+                }
+            }
+            return Json(middleware::DeleteBody {
+                kind: middleware::DeleteRequest::Initial,
+                games: Some(games),
+                locations: Some(locations),
+                mobs: Some(mobs),
+                loots: Some(loot),
+                id: None,
+                locationid: None,
+                mobid: None,
+                name: None,
+            });
+        }
+        middleware::DeleteRequest::Game => {
+            match db::delete_game(&data.connection, request_data.id.unwrap()).await {
+                Ok(_) => {
+                    return Json(middleware::DeleteBody {
+                        kind: middleware::DeleteRequest::Success,
+                        games: None,
+                        locations: None,
+                        mobs: None,
+                        loots: None,
+                        id: None,
+                        locationid: None,
+                        mobid: None,
+                        name: None,
+                    });
+                }
+                Err(_) => {
+                    return Json(middleware::DeleteBody {
+                        kind: middleware::DeleteRequest::Error,
+                        games: None,
+                        locations: None,
+                        mobs: None,
+                        loots: None,
+                        id: None,
+                        locationid: None,
+                        mobid: None,
+                        name: None,
+                    });
+                }
+            }
+        }
+        middleware::DeleteRequest::Location => {
+            match db::delete_location(&data.connection, request_data.id.unwrap()).await {
+                Ok(_) => {
+                    return Json(middleware::DeleteBody {
+                        kind: middleware::DeleteRequest::Success,
+                        games: None,
+                        locations: None,
+                        mobs: None,
+                        loots: None,
+                        id: None,
+                        locationid: None,
+                        mobid: None,
+                        name: None,
+                    });
+                }
+                Err(_) => {
+                    return Json(middleware::DeleteBody {
+                        kind: middleware::DeleteRequest::Error,
+                        games: None,
+                        locations: None,
+                        mobs: None,
+                        loots: None,
+                        id: None,
+                        locationid: None,
+                        mobid: None,
+                        name: None,
+                    });
+                }
+            }
+        }
+        middleware::DeleteRequest::Mob => {
+            match db::delete_mob(&data.connection, request_data.id.unwrap()).await {
+                Ok(_) => {
+                    return Json(middleware::DeleteBody {
+                        kind: middleware::DeleteRequest::Success,
+                        games: None,
+                        locations: None,
+                        mobs: None,
+                        loots: None,
+                        id: None,
+                        locationid: None,
+                        mobid: None,
+                        name: None,
+                    });
+                }
+                Err(_) => {
+                    return Json(middleware::DeleteBody {
+                        kind: middleware::DeleteRequest::Error,
+                        games: None,
+                        locations: None,
+                        mobs: None,
+                        loots: None,
+                        id: None,
+                        locationid: None,
+                        mobid: None,
+                        name: None,
+                    });
+                }
+            }
+        }
+        middleware::DeleteRequest::Loot => {
+            match db::delete_loot(&data.connection, request_data.id.unwrap()).await {
+                Ok(_) => {
+                    return Json(middleware::DeleteBody {
+                        kind: middleware::DeleteRequest::Success,
+                        games: None,
+                        locations: None,
+                        mobs: None,
+                        loots: None,
+                        id: None,
+                        locationid: None,
+                        mobid: None,
+                        name: None,
+                    });
+                }
+                Err(_) => {
+                    return Json(middleware::DeleteBody {
+                        kind: middleware::DeleteRequest::Error,
+                        games: None,
+                        locations: None,
+                        mobs: None,
+                        loots: None,
+                        id: None,
+                        locationid: None,
+                        mobid: None,
+                        name: None,
+                    });
+                }
+            }
+        }
+        middleware::DeleteRequest::Success => todo!(),
+        middleware::DeleteRequest::Error => todo!(),
+    }
+}
 #[post("/add")]
 async fn add(data: Data<DatabaseState>, request_data: Json<middleware::AddBody>) -> impl Responder {
     match request_data.kind {
@@ -46,9 +281,125 @@ async fn add(data: Data<DatabaseState>, request_data: Json<middleware::AddBody>)
                 }
             }
         }
-        middleware::AddRequest::AddLocation => todo!(),
-        middleware::AddRequest::AddMob => todo!(),
-        middleware::AddRequest::AddLoot => todo!(),
+        middleware::AddRequest::AddLocation => {
+            match db::add_location(
+                &data.connection,
+                request_data.game_name.clone().unwrap(),
+                request_data.description.clone(),
+                request_data.location_name.clone().unwrap().clone()[0].clone(),
+                request_data.preview.clone().unwrap_or_default(),
+            )
+            .await
+            {
+                Ok(_) => {
+                    return Json(middleware::AddBody {
+                        kind: middleware::AddRequest::Success,
+                        game_list: None,
+                        location_list: None,
+                        mob_list: None,
+                        game_name: None,
+                        location_name: None,
+                        mob_name: None,
+                        loot_name: None,
+                        description: None,
+                        preview: None,
+                    })
+                }
+                Err(_) => {
+                    return Json(middleware::AddBody {
+                        kind: middleware::AddRequest::Error,
+                        game_list: None,
+                        location_list: None,
+                        mob_list: None,
+                        game_name: None,
+                        location_name: None,
+                        mob_name: None,
+                        loot_name: None,
+                        description: None,
+                        preview: None,
+                    })
+                }
+            }
+        }
+        middleware::AddRequest::AddMob => {
+            match db::add_mob(
+                &data.connection,
+                request_data.mob_name.clone().unwrap().clone()[0].clone(),
+                request_data.description.clone(),
+                request_data.preview.clone(),
+                request_data.location_name.clone().unwrap().clone(),
+            )
+            .await
+            {
+                Ok(_) => {
+                    return Json(middleware::AddBody {
+                        kind: middleware::AddRequest::Success,
+                        game_list: None,
+                        location_list: None,
+                        mob_list: None,
+                        game_name: None,
+                        location_name: None,
+                        mob_name: None,
+                        loot_name: None,
+                        description: None,
+                        preview: None,
+                    })
+                }
+                Err(_) => {
+                    return Json(middleware::AddBody {
+                        kind: middleware::AddRequest::Error,
+                        game_list: None,
+                        location_list: None,
+                        mob_list: None,
+                        game_name: None,
+                        location_name: None,
+                        mob_name: None,
+                        loot_name: None,
+                        description: None,
+                        preview: None,
+                    })
+                }
+            }
+        }
+        middleware::AddRequest::AddLoot => match db::add_loot(
+            &data.connection,
+            request_data.loot_name.clone().unwrap(),
+            request_data.description.clone(),
+            request_data.preview.clone(),
+            request_data.location_name.clone().unwrap().clone(),
+            request_data.mob_name.clone().unwrap().clone(),
+        )
+        .await
+        {
+            Ok(_) => {
+                return Json(middleware::AddBody {
+                    kind: middleware::AddRequest::Success,
+                    game_list: None,
+                    location_list: None,
+                    mob_list: None,
+                    game_name: None,
+                    location_name: None,
+                    mob_name: None,
+                    loot_name: None,
+                    description: None,
+                    preview: None,
+                })
+            }
+            Err(_) => {
+                return Json(middleware::AddBody {
+                    kind: middleware::AddRequest::Error,
+                    game_list: None,
+                    location_list: None,
+                    mob_list: None,
+                    game_name: None,
+                    location_name: None,
+                    mob_name: None,
+                    loot_name: None,
+                    description: None,
+                    preview: None,
+                })
+            }
+        },
         middleware::AddRequest::GetGameList => match db::get_all_games(&data.connection).await {
             Ok(games) => {
                 let mut out = Vec::with_capacity(games.len());
@@ -83,8 +434,94 @@ async fn add(data: Data<DatabaseState>, request_data: Json<middleware::AddBody>)
                 })
             }
         },
-        middleware::AddRequest::GetLocationList => todo!(),
-        middleware::AddRequest::GetMobList => todo!(),
+        middleware::AddRequest::GetLocationList => {
+            match db::get_all_locations_by_game(
+                &data.connection,
+                request_data.game_name.clone().unwrap(),
+            )
+            .await
+            {
+                Ok(games) => {
+                    let mut out = Vec::with_capacity(games.len());
+                    for model in games {
+                        out.push(model.location_name);
+                    }
+                    return Json(middleware::AddBody {
+                        kind: middleware::AddRequest::GetLocationList,
+                        game_list: None,
+                        location_list: Some(out),
+                        mob_list: None,
+                        game_name: None,
+                        location_name: None,
+                        mob_name: None,
+                        loot_name: None,
+                        description: None,
+                        preview: None,
+                    });
+                }
+                Err(err) => {
+                    return Json(middleware::AddBody {
+                        kind: middleware::AddRequest::Error,
+                        game_list: None,
+                        location_list: None,
+                        mob_list: None,
+                        game_name: None,
+                        location_name: None,
+                        mob_name: None,
+                        loot_name: None,
+                        description: None,
+                        preview: None,
+                    })
+                }
+            }
+        }
+        middleware::AddRequest::GetMobList => {
+            let mut out: Vec<String> = Vec::new();
+            for location in request_data.location_name.clone().unwrap() {
+                match db::get_all_mobs_by_location(&data.connection, location.clone()).await {
+                    Ok(models) => {
+                        for model in models {
+                            let mut pres = false;
+                            for present in &out {
+                                if model.mob_name == *present {
+                                    pres = true;
+                                    break;
+                                }
+                            }
+                            if !pres {
+                                out.push(model.mob_name.clone());
+                            }
+                        }
+                    }
+                    Err(_) => {
+                        return Json(middleware::AddBody {
+                            kind: middleware::AddRequest::Error,
+                            game_list: None,
+                            location_list: None,
+                            mob_list: None,
+                            game_name: None,
+                            location_name: None,
+                            mob_name: None,
+                            loot_name: None,
+                            description: None,
+                            preview: None,
+                        })
+                    }
+                }
+            }
+            return Json(middleware::AddBody {
+                kind: middleware::AddRequest::GetMobList,
+                game_list: None,
+                location_list: None,
+                mob_list: Some(out),
+                game_name: None,
+                location_name: None,
+                mob_name: None,
+                loot_name: None,
+                description: None,
+                preview: None,
+            });
+        }
         _ => {
             return Json(middleware::AddBody {
                 kind: middleware::AddRequest::Error,
@@ -626,6 +1063,7 @@ async fn main() -> std::io::Result<()> {
             .service(viewer)
             .service(editor)
             .service(add)
+            .service(delete)
             .default_service(get().to(index))
     })
     .bind("127.0.0.1:9999")?

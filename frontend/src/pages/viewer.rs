@@ -117,8 +117,7 @@ impl Component for Viewer {
             Msg::LocationChange(location) => {
                 if location.contains("Undefined") {
                     self.content = Some((
-                        include_bytes!("D:\\Projects\\Rust\\course_work\\frontend\\unknown.png")
-                            .to_vec(),
+                        include_bytes!("../../unknown.png").to_vec(),
                         String::from("Undefined"),
                         String::from("Just a placeholder"),
                     ));
@@ -331,8 +330,8 @@ impl Component for Viewer {
                         })}>{".Edit"}</a></p>
                         //добавить изменить
                     </div>
-                    <div class={css!("width:45%;")}>
-                        <img class={css!("width: 100%; height: 100%;bject-fit: cover;")} src={format!("data:image/png;base64,{}", base64::encode(desc.0.clone()))}/>
+                    <div class={css!("width:45%; height: 45%;")}>
+                        <img class={css!("width: 75%; height: 75%;object-fit: cover;")} src={format!("data:image/png;base64,{}", base64::encode(desc.0.clone()))}/>
                         <a class="edit" onclick={ctx.link().callback(|e: MouseEvent| {
                             let input: HtmlLinkElement = e.target_unchecked_into();
                             Msg::EditIcon

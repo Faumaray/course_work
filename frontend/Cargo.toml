@@ -25,6 +25,11 @@ features = [
 	"HtmlButtonElement",
 	"HtmlLinkElement",
 	"HtmlFormElement",
+	"HtmlOptionElement",
+	"HtmlSelectElement",
+	"HtmlCollection",
+	"HtmlTableRowElement",
+	"Element",
 	"File"
 ]
 

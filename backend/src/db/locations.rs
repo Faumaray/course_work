@@ -14,7 +14,7 @@ impl EntityName for Entity {
 #[derive(Clone, Debug, PartialEq, DeriveModel, DeriveActiveModel)]
 pub struct Model {
     pub id: i32,
-    pub gameid: i32,
+    pub gameid: Option<i32>,
     pub location_name: String,
     pub descr: Option<String>,
     pub on_map: Option<Vec<u8>>,
@@ -53,7 +53,7 @@ impl ColumnTrait for Column {
     fn def(&self) -> ColumnDef {
         match self {
             Self::Id => ColumnType::Integer.def(),
-            Self::Gameid => ColumnType::Integer.def(),
+            Self::Gameid => ColumnType::Integer.def().null(),
             Self::LocationName => ColumnType::String(None).def(),
             Self::Descr => ColumnType::String(None).def().null(),
             Self::OnMap => ColumnType::Binary.def().null(),

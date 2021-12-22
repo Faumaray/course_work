@@ -78,3 +78,25 @@ pub enum AddRequest {
     Success = 0,
     Error = -1,
 }
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct DeleteBody {
+    pub kind: DeleteRequest,
+    pub games: Option<Vec<(i32, String)>>,
+    pub locations: Option<Vec<(i32, i32, String)>>,
+    pub mobs: Option<Vec<(i32, Option<i32>, String)>>,
+    pub loots: Option<Vec<(i32, Option<i32>, Option<i32>, String)>>,
+    pub id: Option<i32>,
+    pub locationid: Option<i32>,
+    pub mobid: Option<i32>,
+    pub name: Option<String>,
+}
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub enum DeleteRequest {
+    Initial = 1,
+    Game = 2,
+    Location = 3,
+    Mob = 4,
+    Loot = 5,
+    Success = 0,
+    Error = -1,
+}
