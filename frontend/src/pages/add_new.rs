@@ -576,8 +576,7 @@ impl Component for AddNew {
                             </div>
                         </div>
                         <br/>
-                        <br/>
-                        <select class={stylist::css!("width: 200px; height: 200px;")} multiple=true onchange={
+                        <select class={stylist::css!("width: 100px; height: 100px;")} multiple=true onchange={
                             ctx.link().callback(|e: Event| {
                                 let select: web_sys::HtmlSelectElement = e.target_unchecked_into();
                                 let mut selected = Vec::new();
@@ -590,7 +589,6 @@ impl Component for AddNew {
                         })}>
                             {locations}
                         </select>
-                        <br/>
                             <textarea class={stylist::css!("witdh: 100px;height: 100px;")} value={self.description.clone()} oninput={ctx.link().callback(|e: InputEvent| {
                                 let input: web_sys::HtmlTextAreaElement = e.target_unchecked_into();
                                 Msg::ChangeDescription(input.value())
@@ -667,8 +665,7 @@ impl Component for AddNew {
                         </div>
                     </div>
                     <br/>
-                    <br/>
-                    <select class={stylist::css!("witdh: 100px;height: 100px;")} multiple=true onchange={
+                    <select class={stylist::css!("width: 100px; height: 100px;")} multiple=true onchange={
                         ctx.link().callback(|e: Event| {
                             let select: web_sys::HtmlSelectElement = e.target_unchecked_into();
                             let mut selected = Vec::new();
@@ -681,7 +678,7 @@ impl Component for AddNew {
                     })}>
                         {locations}
                     </select>
-                    <select class={stylist::css!("witdh: 100px;height: 100px; margin-left: 50px;")} multiple=true onchange={
+                    <select class={stylist::css!("width: 100px; height: 100px; margin-left: 50px;")} multiple=true onchange={
                         ctx.link().callback(|e: Event| {
                             let select: web_sys::HtmlSelectElement = e.target_unchecked_into();
                             let mut selected = Vec::new();
@@ -694,11 +691,11 @@ impl Component for AddNew {
                     })}>
                         {mobs}
                     </select>
-                        <br/>
                         <textarea class={stylist::css!("witdh: 100px;height: 100px;")} value={self.description.clone()} oninput={ctx.link().callback(|e: InputEvent| {
                             let input: web_sys::HtmlTextAreaElement = e.target_unchecked_into();
                             Msg::ChangeDescription(input.value())
                         })} />
+                        <br/>
                         <div class={stylist::css!("width: 250px; height: 250px; margin-left: 20px;")}>
                             <img class={stylist::css!("width: 55%; height: 55%;bject-fit: cover;")} src={format!("data:image/png;base64,{}", base64::encode(self.preview.clone()))}/>
                             <p>{ "Choose a file to upload" }</p>

@@ -8,11 +8,6 @@ use actix_web::{
     App, HttpServer, Responder, Result,
 };
 use db::*;
-#[allow(clippy::unused_async)]
-async fn index() -> Result<NamedFile> {
-    println!("Serving at 127.0.0.1:9999");
-    Ok(NamedFile::open("./frontend/index.html")?)
-}
 #[post("/delete")]
 async fn delete(
     data: Data<DatabaseState>,
@@ -1070,7 +1065,7 @@ async fn main() -> std::io::Result<()> {
             .service(editor)
             .service(add)
             .service(delete)
-            .default_service(get().to(index))
+            .default_service(Files::new("/", "./frontend").index_file("index.html"))
     })
     .bind(("0.0.0.0", port))?
     .run()

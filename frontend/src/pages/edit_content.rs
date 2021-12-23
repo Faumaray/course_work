@@ -196,7 +196,7 @@ impl Component for EditContent {
             crate::pages::viewer::Edit::name => {
                 html! {
                     <div class="inner">
-                    <center class={stylist::css!("margin-top: 5%;")}>
+                    <center class={stylist::css!("margin-top: 20px;")}>
                                     <label for="name">{"Edit Name:"} </label>
                                     <input value={self.name.clone()} type="text" name="name" id="name" oninput={ctx.link().callback(|e: InputEvent| {
                                         let input: web_sys::HtmlInputElement = e.target_unchecked_into();
@@ -214,7 +214,7 @@ impl Component for EditContent {
                 html! {
                     <div class="inner">
                     <center class={stylist::css!("margin-top: 5%;")}>
-                            <textarea class={stylist::css!("width: 40%; height:30%;")} value={self.description.clone()} oninput={ctx.link().callback(|e: InputEvent| {
+                            <textarea class={stylist::css!("width: 200px; height:200px;margin-top:20px;")} value={self.description.clone()} oninput={ctx.link().callback(|e: InputEvent| {
                                 let input: web_sys::HtmlTextAreaElement = e.target_unchecked_into();
                                 Msg::DescChange(input.value())
                             })} />
@@ -229,7 +229,7 @@ impl Component for EditContent {
             crate::pages::viewer::Edit::image => {
                 html! {
                     <div class={stylist::css!("width:90%, height: 90%;margin-left: 15%, margin-top:5%;")}>
-                        <center class={stylist::css!("margin-top: 5%;")}>
+                        <center class={stylist::css!("margin-top: 20px;")}>
                             <img class={stylist::css!("width: 55%; height: 55%;bject-fit: cover;")} src={format!("data:image/png;base64,{}", base64::encode(self.image.clone()))}/>
                             <p>{ "Choose a file to upload" }</p>
                             <input type="file" multiple=false onchange={ctx.link().callback(move |e: Event| {

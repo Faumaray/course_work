@@ -11,7 +11,7 @@ rollup ./frontend/main.js --format iife --file ./frontend/pkg/package.js
 description = "Build client"
 install_crate = { crate_name = "wasm-pack", binary = "wasm-pack", test_arg = "-V" }
 command = "wasm-pack"
-args = ["build", "./frontend", "--target", "web", "--out-name", "package", "--release"]
+args = ["build", "./frontend","--target","web", "--out-name", "package", "--release"]
 
 [tasks.build_server]
 description = "Build server"
@@ -22,7 +22,7 @@ args = ["build","--package", "backend"]
 description = "Build and start Actix server with client on port 9999"
 command = "cargo"
 args = ["run", "--package", "backend"]
-dependencies = ["build_client", "rollup", "build_server", "open" ]
+dependencies = ["build_client","rollup", "build_server", "open" ]
 
 [tasks.open]
 script_runner = "powershell"
