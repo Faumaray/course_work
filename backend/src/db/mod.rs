@@ -340,7 +340,7 @@ pub async fn add_loot(
                 }
             }
         }
-        loot::Entity::insert_many(loot_list)
+        loot::Entity::insert_many(loot_list.clone())
             .exec(connection)
             .await?;
     }

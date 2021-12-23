@@ -729,7 +729,7 @@ impl Component for AddNew {
         html! {
             <>
                 <div id="main_div" class="main_div">
-                    <center class={stylist::css!("width:100%;height:100%;margin-top: 30%;")}>
+                    <center class={stylist::css!("width:100%;height:100%;margin-top: 5%;")}>
                         <p>{"Please select what your want to add:"}</p>
                         <input type="radio" id="games" value="Games" name="state" onclick={ctx.link().callback(|_|{
                             Msg::ChangeState(State::Game)
@@ -754,7 +754,7 @@ impl Component for AddNew {
                 <stylist::yew::Global css=r#"
                 .main_div{
                     height:740px;
-                    margin-top: 10%;
+                    margin-top: 5%;
                     line-height: 1.5;
                     margin-left: 15%;
                     margin-right: 15%;

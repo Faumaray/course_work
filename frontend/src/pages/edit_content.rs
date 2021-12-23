@@ -196,7 +196,7 @@ impl Component for EditContent {
             crate::pages::viewer::Edit::name => {
                 html! {
                     <div class="inner">
-                    <center class={stylist::css!("margin-top: 10%;")}>
+                    <center class={stylist::css!("margin-top: 5%;")}>
                                     <label for="name">{"Edit Name:"} </label>
                                     <input value={self.name.clone()} type="text" name="name" id="name" oninput={ctx.link().callback(|e: InputEvent| {
                                         let input: web_sys::HtmlInputElement = e.target_unchecked_into();
@@ -213,7 +213,7 @@ impl Component for EditContent {
             crate::pages::viewer::Edit::description => {
                 html! {
                     <div class="inner">
-                    <center class={stylist::css!("margin-top: 10%;")}>
+                    <center class={stylist::css!("margin-top: 5%;")}>
                             <textarea class={stylist::css!("width: 40%; height:30%;")} value={self.description.clone()} oninput={ctx.link().callback(|e: InputEvent| {
                                 let input: web_sys::HtmlTextAreaElement = e.target_unchecked_into();
                                 Msg::DescChange(input.value())
@@ -228,8 +228,8 @@ impl Component for EditContent {
             }
             crate::pages::viewer::Edit::image => {
                 html! {
-                    <div class={stylist::css!("width:90%, height: 90%;margin-left: 15%, margin-top:15%;")}>
-                        <center class={stylist::css!("margin-top: 10%;")}>
+                    <div class={stylist::css!("width:90%, height: 90%;margin-left: 15%, margin-top:5%;")}>
+                        <center class={stylist::css!("margin-top: 5%;")}>
                             <img class={stylist::css!("width: 55%; height: 55%;bject-fit: cover;")} src={format!("data:image/png;base64,{}", base64::encode(self.image.clone()))}/>
                             <p>{ "Choose a file to upload" }</p>
                             <input type="file" multiple=false onchange={ctx.link().callback(move |e: Event| {
@@ -265,14 +265,14 @@ impl Component for EditContent {
             </div>
             <stylist::yew::Global css=r#"
             .inner{
-                margin-top: 30%;
+                margin-top: 5%;
                 margin-left: 15%;
                 margin-right: 15%;
             }
             .main_div{
                 height:740px;
                 line-height: 1.5;
-                margin-top: 10%;
+                margin-top: 5%;
                 margin-left: 15%;
                 margin-right: 15%;
                 background: white;

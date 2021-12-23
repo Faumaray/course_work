@@ -385,7 +385,7 @@ impl Component for Viewer {
 
                 <stylist::yew::Global css=r#"
                 .head {
-                    margin-top: 20%;
+                    margin-top: 5%;
                     display: flex;
                     justify-content: space-between;
                     align-items: center;
