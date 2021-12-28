@@ -1,3 +1,4 @@
+use crate::switch::fetch_post as fetch;
 use stylist::css;
 use web_sys::{HtmlButtonElement, HtmlInputElement, HtmlLinkElement, HtmlTextAreaElement};
 use yew::{html::ImplicitClone, prelude::*};
@@ -21,7 +22,7 @@ pub enum Msg {
     LocationChange(String),
     MobChange(String),
     LootChange(String),
-    ReceiveResponse(Result<middleware::ResponseBody, reqwasm::Error>),
+    ReceiveResponse(Result<middleware::Response, reqwasm::Error>),
 }
 #[derive(Clone, PartialEq)]
 pub enum Edit {
@@ -63,31 +64,11 @@ impl std::str::FromStr for Edit {
         }
     }
 }
-pub async fn fetch(body: String) -> Result<middleware::ResponseBody, reqwasm::Error> {
-    let res: Result<middleware::ResponseBody, reqwasm::Error> = reqwasm::http::Request::post("/")
-        .header("Content-Type", "application/json")
-        .body(body)
-        .send()
-        .await
-        .unwrap()
-        .json()
-        .await;
-    res
-}
 impl Component for Viewer {
     type Message = Msg;
     type Properties = ();
 
     fn create(ctx: &Context<Self>) -> Self {
-        let body = serde_json::to_string(&middleware::RequestBody {
-            kind: middleware::DatabaseRequest::Initial,
-            name: String::new(),
-        })
-        .unwrap();
-        ctx.link().send_future(async move {
-            let data = fetch(body).await;
-            Msg::ReceiveResponse(data)
-        });
         Self {
             games: Vec::new(),
             locations: Vec::new(),
@@ -100,20 +81,7 @@ impl Component for Viewer {
 
     fn update(&mut self, ctx: &Context<Self>, msg: Self::Message) -> bool {
         match msg {
-            Msg::GameChange(game) => {
-                self.edit_type = Edit::game;
-                let body = serde_json::to_string(&middleware::RequestBody {
-                    kind: middleware::DatabaseRequest::LocationsByGame,
-                    name: game.clone(),
-                })
-                .unwrap();
-                ctx.link().send_future(async move {
-                    let data = fetch(body).await;
-                    Msg::ReceiveResponse(data)
-                });
-
-                false
-            }
+            Msg::GameChange(game) => false,
             Msg::LocationChange(location) => {
                 if location.contains("Undefined") {
                     self.content = Some((
@@ -122,15 +90,6 @@ impl Component for Viewer {
                         String::from("Just a placeholder"),
                     ));
                     self.edit_type = Edit::location;
-                    let body = serde_json::to_string(&middleware::RequestBody {
-                        kind: middleware::DatabaseRequest::ListsByLocation,
-                        name: String::new(),
-                    })
-                    .unwrap();
-                    ctx.link().send_future(async move {
-                        let data = fetch(body).await;
-                        Msg::ReceiveResponse(data)
-                    });
                 } else {
                     for tuple in &self.locations {
                         if tuple.0 == location {
@@ -140,15 +99,6 @@ impl Component for Viewer {
                             break;
                         }
                     }
-                    let body = serde_json::to_string(&middleware::RequestBody {
-                        kind: middleware::DatabaseRequest::ListsByLocation,
-                        name: location.clone(),
-                    })
-                    .unwrap();
-                    ctx.link().send_future(async move {
-                        let data = fetch(body).await;
-                        Msg::ReceiveResponse(data)
-                    });
                 }
                 false
             }
@@ -173,43 +123,12 @@ impl Component for Viewer {
                 true
             }
             Msg::ReceiveResponse(response) => match response {
-                Ok(body) => match body.kind {
-                    middleware::DatabaseRequest::Initial => {
-                        if let Some(data) = &body.games {
-                            self.games = data.clone();
-                        } else {
-                            self.games = Vec::new();
-                        }
-                        ctx.link()
-                            .send_message(Msg::GameChange(body.clone().games.unwrap()[0].clone()));
-                        true
-                    }
-                    middleware::DatabaseRequest::LocationsByGame => {
-                        if let Some(data) = body.locations {
-                            self.locations = data.clone();
-                        } else {
-                            self.locations = Vec::new();
-                            self.mobs = Vec::new();
-                            self.loot = Vec::new();
-                        }
-                        true
-                    }
-                    middleware::DatabaseRequest::Success => todo!(),
-                    middleware::DatabaseRequest::Error => false,
-
-                    middleware::DatabaseRequest::ListsByLocation => {
-                        if let Some(data) = body.mobs {
-                            self.mobs = data.clone();
-                        } else {
-                            self.mobs = Vec::new();
-                        }
-                        if let Some(data) = body.loot {
-                            self.loot = data.clone();
-                        } else {
-                            self.loot = Vec::new();
-                        }
-                        true
-                    }
+                Ok(body) => match body {
+                    middleware::Response::Error(_, _) => todo!(),
+                    middleware::Response::Success(_) => todo!(),
+                    middleware::Response::PageShow(_) => todo!(),
+                    middleware::Response::Getter(_) => todo!(),
+                    middleware::Response::GetterDeleteBlockList(_) => todo!(),
                 },
                 Err(error) => {
                     self.games = vec![error.to_string()];
@@ -382,113 +301,6 @@ impl Component for Viewer {
                             </div>
                 </div>
 
-
-                <stylist::yew::Global css=r#"
-                .head {
-                    margin-top: 5%;
-                    display: flex;
-                    justify-content: space-between;
-                    align-items: center;
-                    margin-left: 15%;
-                    margin-right: 15%;
-                  }
-                  .foot {
-                    display: flex;
-                    justify-content: space-between;
-                    align-items: center;
-                    margin-left: 15%;
-                    margin-right: 15%;
-                  }
-                  .navigation {
-                    float: left;
-                    display: block;
-                    color: orange;
-                    text-align: center;
-                    padding: 14px 16px;
-                    text-decoration: none;
-                    font-family: helvetica;
-                    letter-spacing: 2px;
-                  }
-                  .navigation a{
-                      border-style: inset;
-                      border-color: orange;
-                      border-radius: 5px;
-                  }
-                  .navigation a:hover {
-                    background-color: #ddd;
-                    color: black;
-                  }
-                  
-                .edit{
-                    font-size: 14px;
-                    color: blue;
-                }
-                .locations_button{
-                    background-color: none;
-                    border: none;
-                    color: black;
-                    border-radius: 6px;
-                    padding: 7px 10px;
-                    text-align: center;
-                    text-decoration: none;
-                    font-size: 14px;
-                    
-                }
-                .li_element{
-                    margin-right: 40px; 
-                    margin-bottom: 10px;
-                }
-                .locations_div{
-                    text-align: center;
-                    background-color: blue;
-                }
-                .locations_list{
-                    margin-top: 20px;
-                    text-align: center;
-                    list-style-type: none;
-                    height: 100%;
-                    width: 150px;
-                }
-                .main_div{
-                    display: flex;
-                    flex-direction: row;
-                    height:740px;
-                    line-height: 1.5;
-                    margin-left: 15%;
-                    margin-right: 15%;
-                    background: white;
-                    border-radius: 12px;
-                }
-                .dropdown {
-                    margin-left: 50px;
-                    width: 40%;
-                    margin-top: 50px;
-                    margin-bottom: 50px;
-                    display: inline-block;
-                    position: relative;
-                  }
-                  .content {
-                    display: none;
-                    position: absolute;
-                    width: 100%;
-                    overflow: auto;
-                    box-shadow: 0px 10px 10px 0px rgba(0, 0, 0, 0.4);
-                  }
-                  .dropdown:hover .content {
-                    display: block;
-                  }
-                  .content a {
-                    display: block;
-                    color: #000000;
-                    padding: 5px;
-                    text-decoration: none;
-                  }
-                  .content a:hover {
-                    color: #ffffff;
-                    background-color: #00a4bd;
-                  }
-                  
-                "#/>
             </div>
             <footer class="foot">
                         <nav class="navigation">

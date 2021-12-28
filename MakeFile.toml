@@ -16,7 +16,7 @@ args = ["build", "./frontend","--target","web", "--out-name", "package", "--rele
 [tasks.build_server]
 description = "Build server"
 command = "cargo"
-args = ["build","--package", "backend"]
+args = ["build","--package", "backend","--release"]
 
 [tasks.start]
 description = "Build and start Actix server with client on port 9999"
@@ -30,8 +30,15 @@ script_extension = "ps1"
 script = ''' 
 Start-process "http://127.0.0.1:9999"
 '''
+
 [tasks.build]
 description = "Build server"
 command = "cargo"
 args = ["build","--package", "backend", "--release"]
 dependencies = ["build_client", "rollup"]
+
+[tasks.run]
+description = "Build and Run"
+command = "cargo"
+args = ["run", "--package", "backend", "--release"]
+dependencies = ["build_client","rollup","build_server"]

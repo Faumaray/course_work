@@ -42,9 +42,7 @@ impl Component for Index {
     fn view(&self, _ctx: &Context<Self>) -> Html {
         html! {
             <BrowserRouter >
-                <main>
                     <Switch<AppRoute> render={Switch::render(switch)} />
-                </main>
             </BrowserRouter>
         }
     }

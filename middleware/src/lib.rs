@@ -1,102 +1,148 @@
 use serde::{Deserialize, Serialize};
+
+/// Primitives Represents Information Block
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct RequestBody {
-    pub kind: DatabaseRequest,
+pub struct Info {
     pub name: String,
-}
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub enum DatabaseRequest {
-    Initial = 1,
-    LocationsByGame = 2,
-    ListsByLocation = 3,
-    Success = 0,
-    Error = -1,
-}
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct ResponseBody {
-    pub kind: DatabaseRequest,
-    pub err: Option<String>,
-    pub games: Option<Vec<String>>,
-    pub locations: Option<Vec<(String, Vec<u8>, String)>>,
-    pub mobs: Option<Vec<(String, Vec<u8>, String)>>,
-    pub loot: Option<Vec<(String, Vec<u8>, String)>>,
-}
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct EditRequestBody {
-    pub kind: EditRequest,
-    pub edit_type: EditType,
-    pub name: Option<String>,
-    pub description: Option<String>,
-    pub image: Option<Vec<u8>>,
-    pub original: Option<String>,
-}
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct EditResponseBody {
-    pub kind: EditRequest,
-    pub name: Option<String>,
-    pub description: Option<String>,
-    pub image: Option<Vec<u8>>,
-}
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub enum EditRequest {
-    Initial = 1,
-    ChangeName = 2,
-    ChangeDescription = 3,
-    ChangePreview = 4,
-    Success = 0,
-    Error = -1,
-}
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub enum EditType {
-    Game = 1,
-    Location = 2,
-    Mob = 3,
-    Loot = 4,
-}
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct AddBody {
-    pub kind: AddRequest,
-    pub game_list: Option<Vec<String>>,
-    pub location_list: Option<Vec<String>>,
-    pub mob_list: Option<Vec<String>>,
-    pub game_name: Option<String>,
-    pub location_name: Option<Vec<String>>,
-    pub mob_name: Option<Vec<String>>,
-    pub loot_name: Option<String>,
-    pub description: Option<String>,
+    pub informations_block: Option<String>,
     pub preview: Option<Vec<u8>>,
 }
+
+/// Enum Various Types of Body for View content Page by Types of Content[Response Type]
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub enum AddRequest {
-    AddGame = 1,
-    AddLocation = 2,
-    AddMob = 3,
-    AddLoot = 4,
-    GetGameList = 5,
-    GetLocationList = 6,
-    GetMobList = 7,
-    Success = 0,
-    Error = -1,
+pub enum InfoResponseBodyTypes {
+    Game { info: Info },
+    Location { info: Info },
+    Mob { info: Info },
+    Loot { info: Info },
 }
+
+/// Enum Various Types of Body for View content Page by Types of Content[Request Type]
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct DeleteBody {
-    pub kind: DeleteRequest,
-    pub games: Option<Vec<(i32, String)>>,
-    pub locations: Option<Vec<(i32, i32, String)>>,
-    pub mobs: Option<Vec<(i32, Option<i32>, String)>>,
-    pub loots: Option<Vec<(i32, Option<i32>, Option<i32>, String)>>,
-    pub id: Option<i32>,
-    pub locationid: Option<i32>,
-    pub mobid: Option<i32>,
-    pub name: Option<String>,
+pub enum InfoRequestBodyTypes {
+    Game {
+        name: String,
+    },
+    Location {
+        name: String,
+        game: Option<String>,
+    },
+    Mob {
+        name: String,
+        game: Option<String>,
+        location: Option<String>,
+    },
+    Loot {
+        name: String,
+        game: Option<String>,
+        location: Option<String>,
+        mob: Option<String>,
+    },
 }
+/// For Various Types Of Lists
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub enum DeleteRequest {
-    Initial = 1,
-    Game = 2,
-    Location = 3,
-    Mob = 4,
-    Loot = 5,
-    Success = 0,
-    Error = -1,
+pub enum GetterRequestBodyTypes {
+    GameList,
+    LocationListByGame(String),
+    LocationListByMob(String),
+    LocationListByLoot(String),
+    MobListByGame(String),
+    MobListByLocation(String),
+    MobListByLoot(String),
+    LootListByGame(String),
+    LootListByLocation(String),
+    LootListByMob(String),
+}
+
+/// Enum Various Types of Body for AddNew content Page by Types of Content
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub enum AddNewContentRequestBodyTypes {
+    Game {
+        info: Info,
+    },
+    Location {
+        info: Info,
+        game: Option<String>,
+    },
+    Mob {
+        info: Info,
+        game: Option<String>,
+        location: Vec<String>,
+    },
+    Loot {
+        infp: Info,
+        game: Option<String>,
+        location: Vec<String>,
+        mob: Vec<String>,
+    },
+}
+
+/// Enum Various Types of Body for Delete content Page by Types of Content
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub enum DeleteContentRequestBodyTypes {
+    Game { id: String },
+    Location { id: String },
+    Mob { id: String },
+    Loot { id: String },
+}
+
+/// Enum Various Types of Body for Edit content Page by Types of Content
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub enum EditContentRequestBodyTypes {
+    Game(EditContentPartTypes),
+    Location(EditContentPartTypes),
+    Mob(EditContentPartTypes),
+    Loot(EditContentPartTypes),
+}
+
+/// Enum Various Part of Editable Content
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub enum EditContentPartTypes {
+    Name { original: String, new: String },
+    Description(String),
+    Preview(Vec<u8>),
+}
+
+///Getter for Delete Page Response Body
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub enum GetterDeleteBlockListResponseTypes {
+    /// 1)Id: i32, 2)Name: String
+    Game(Vec<(i32, String)>),
+    /// 1)Id: i32, 2)GameId: String[i32 nullable], 3)Name: String
+    Location(Vec<(i32, String, String)>),
+    /// 1)Id: i32, 2)GameId: String[i32 nullable], 3)LocationId: String[i32 nullable] , 4)Name: String
+    Mob(Vec<(i32, String, String, String)>),
+    /// 1)Id: i32, 2)GameId: String[i32 nullable], 3)LocationId: String[i32 nullable], 4)MobId: String[i32 nullable] , 5)Name: String
+    Loot(Vec<(i32, String, String, String, String)>),
+}
+/// Enum of Various Types Content
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub enum GetterDeleteBlockListRequestTypes {
+    Game,
+    Location,
+    Mob,
+    Loot,
+}
+
+/// Enum Various Types of Responses from Server
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub enum Response {
+    Error(String, String),
+    Success(String),
+    //Registration(todo!("Add struct")),
+    PageShow(InfoResponseBodyTypes),
+    Getter(Vec<String>),
+    GetterDeleteBlockList(GetterDeleteBlockListResponseTypes),
+}
+
+/// Enum Various Types of Requests from Frontend
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub enum Request {
+    //Registration(todo!("Add struct")),
+    PageShow(InfoRequestBodyTypes),
+    Getter(GetterRequestBodyTypes),
+    GetterDeleteBlockList(GetterDeleteBlockListRequestTypes),
+    PageAdd(AddNewContentRequestBodyTypes),
+    PageDelete(DeleteContentRequestBodyTypes),
+    PadeEdit(EditContentRequestBodyTypes),
 }

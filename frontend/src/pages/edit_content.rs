@@ -1,6 +1,7 @@
-use std::collections::HashMap;
-
+use crate::switch::fetch_post as post;
 use gloo_file::{callbacks::FileReader, File};
+use middleware::GetterDeleteBlockListRequestTypes as State;
+use std::collections::HashMap;
 use web_sys::console;
 use yew::prelude::*;
 use yew_router::{history::History, prelude::RouterScopeExt};
@@ -17,7 +18,6 @@ pub struct EditContent {
     description: Option<String>,
     image: Vec<u8>,
     readers: HashMap<String, FileReader>,
-    files: Vec<String>,
 }
 
 pub enum Msg {
@@ -29,19 +29,7 @@ pub enum Msg {
     EditNameConfirm,
     EditDescriptionConfirm,
     EditImageConfirm,
-    ReceiveResponse(Result<middleware::EditResponseBody, reqwasm::Error>),
-}
-pub async fn fetch(body: String) -> Result<middleware::EditResponseBody, reqwasm::Error> {
-    let res: Result<middleware::EditResponseBody, reqwasm::Error> =
-        reqwasm::http::Request::post("/edit")
-            .header("Content-Type", "application/json")
-            .body(body)
-            .send()
-            .await
-            .unwrap()
-            .json()
-            .await;
-    res
+    ReceiveResponse(Result<middleware::Response, reqwasm::Error>),
 }
 impl Component for EditContent {
     type Message = Msg;
@@ -49,47 +37,31 @@ impl Component for EditContent {
 
     fn create(ctx: &Context<Self>) -> Self {
         let edit_type = match ctx.props().edit_type {
-            super::viewer::Edit::location => middleware::EditType::Location,
-            super::viewer::Edit::mob => middleware::EditType::Mob,
-            super::viewer::Edit::loot => middleware::EditType::Loot,
-            super::viewer::Edit::game => middleware::EditType::Game,
-            _ => middleware::EditType::Game,
+            super::viewer::Edit::location => State::Location,
+            super::viewer::Edit::mob => State::Mob,
+            super::viewer::Edit::loot => State::Loot,
+            super::viewer::Edit::game => State::Game,
+            _ => State::Game,
         };
-        let body = serde_json::to_string(&middleware::EditRequestBody {
-            kind: middleware::EditRequest::Initial,
-            description: None,
-            image: None,
-            name: Some(ctx.props().name.clone().replace("%20", " ")),
-            original: None,
-            edit_type: edit_type.clone(),
-        })
-        .unwrap();
-        ctx.link().send_future(async move {
-            let data = fetch(body).await;
-            Msg::ReceiveResponse(data)
-        });
         Self {
             name: ctx.props().name.clone().replace("%20", " "),
             original: ctx.props().name.clone().replace("%20", " "),
             description: None,
             image: Vec::new(),
             readers: HashMap::default(),
-            files: vec![],
         }
     }
 
     fn update(&mut self, ctx: &Context<Self>, msg: Self::Message) -> bool {
         let edit_type = match ctx.props().edit_type {
-            super::viewer::Edit::location => middleware::EditType::Location,
-            super::viewer::Edit::mob => middleware::EditType::Mob,
-            super::viewer::Edit::loot => middleware::EditType::Loot,
-            super::viewer::Edit::game => middleware::EditType::Game,
-            _ => middleware::EditType::Game,
+            super::viewer::Edit::location => State::Location,
+            super::viewer::Edit::mob => State::Mob,
+            super::viewer::Edit::loot => State::Loot,
+            super::viewer::Edit::game => State::Game,
+            _ => State::Game,
         };
         match msg {
             Msg::LoadedBytes(file_name, data) => {
-                let info = format!("file_name: {}, data: {:?}", file_name, data);
-                self.files.push(info);
                 self.image = data.clone();
                 self.readers.remove(&file_name);
                 true
@@ -119,68 +91,16 @@ impl Component for EditContent {
                 self.name = new_name.clone();
                 true
             }
-            Msg::EditNameConfirm => {
-                let body = serde_json::to_string(&middleware::EditRequestBody {
-                    kind: middleware::EditRequest::ChangeName,
-                    edit_type: edit_type,
-                    description: None,
-                    image: None,
-                    name: Some(self.name.clone()),
-                    original: Some(self.original.clone()),
-                })
-                .unwrap();
-                ctx.link().send_future(async move {
-                    let data = fetch(body).await;
-                    Msg::ReceiveResponse(data)
-                });
-                true
-            }
-            Msg::EditDescriptionConfirm => {
-                let body = serde_json::to_string(&middleware::EditRequestBody {
-                    kind: middleware::EditRequest::ChangeDescription,
-                    edit_type: edit_type,
-                    description: self.description.clone(),
-                    image: None,
-                    name: Some(self.name.clone()),
-                    original: None,
-                })
-                .unwrap();
-                ctx.link().send_future(async move {
-                    let data = fetch(body).await;
-                    Msg::ReceiveResponse(data)
-                });
-                true
-            }
-            Msg::EditImageConfirm => {
-                let body = serde_json::to_string(&middleware::EditRequestBody {
-                    kind: middleware::EditRequest::ChangeDescription,
-                    edit_type: edit_type,
-                    description: None,
-                    image: Some(self.image.clone()),
-                    name: Some(self.name.clone()),
-                    original: None,
-                })
-                .unwrap();
-                ctx.link().send_future(async move {
-                    let data = fetch(body).await;
-                    Msg::ReceiveResponse(data)
-                });
-                true
-            }
+            Msg::EditNameConfirm => true,
+            Msg::EditDescriptionConfirm => true,
+            Msg::EditImageConfirm => true,
             Msg::ReceiveResponse(res) => match res {
-                Ok(body) => match body.kind {
-                    middleware::EditRequest::Initial => {
-                        self.name = body.name.clone().unwrap_or_default();
-                        self.description = body.description.clone();
-                        self.image = body.image.clone().unwrap_or_default();
-                        return true;
-                    }
-                    middleware::EditRequest::Success => {
-                        let history = ctx.link().history().unwrap();
-                        history.back();
-                        false
-                    }
-                    _ => return false,
+                Ok(body) => match body {
+                    middleware::Response::Error(_, _) => todo!(),
+                    middleware::Response::Success(_) => todo!(),
+                    middleware::Response::PageShow(_) => todo!(),
+                    middleware::Response::Getter(_) => todo!(),
+                    middleware::Response::GetterDeleteBlockList(_) => todo!(),
                 },
                 Err(err_msg) => return false,
             },
@@ -259,27 +179,10 @@ impl Component for EditContent {
             }
         };
 
-        html! {<>
-            <div id="main_div" class="main_div">
-                {inner}
-            </div>
-            <stylist::yew::Global css=r#"
-            .inner{
-                margin-top: 5%;
-                margin-left: 15%;
-                margin-right: 15%;
-            }
-            .main_div{
-                height:740px;
-                line-height: 1.5;
-                margin-top: 5%;
-                margin-left: 15%;
-                margin-right: 15%;
-                background: white;
-                border-radius: 12px;
-            }
-            
-            "#/>
-        </>}
+        html! {
+                <div id="main_div" class="main_div">
+                    {inner}
+                </div>
+        }
     }
 }
