@@ -2,42 +2,29 @@ use yew_router::Routable;
 #[derive(Clone, Routable, PartialEq)]
 pub enum AppRoute {
     #[at("/")]
-    Viewer,
-    #[at("/add")]
-    AddNew,
-    #[at("/delete")]
-    Delete,
-    #[at("/edit/:typ/:part/:name_t")]
-    EditContent {
-        typ: crate::pages::viewer::Edit,
-        name_t: String,
-        part: crate::pages::viewer::Edit,
-    },
+    App,
     #[not_found]
     #[at("/404")]
     PageNotFound,
 }
 
-pub async fn fetch_post(body: String, path: &str) -> Result<middleware::Response, reqwasm::Error> {
-    let res: Result<middleware::Response, reqwasm::Error> = reqwasm::http::Request::post(path)
-        .header("Content-Type", "application/json")
-        .body(body)
-        .send()
-        .await
-        .unwrap()
-        .json()
-        .await;
-    res
-}
-pub async fn fetch_get(body: String, path: &str) -> Result<middleware::Response, reqwasm::Error> {
-    let res: Result<middleware::Response, reqwasm::Error> = reqwasm::http::Request::get(path)
-        .header("Content-Type", "application/json")
-        .body(body)
-        .send()
-        .await
-        .unwrap()
-        .json()
-        .await;
-    res
+#[derive(Clone, Routable, PartialEq)]
+pub enum SecondRoute {
+    #[at("/")]
+    Index,
+    #[at("/admin/add")]
+    AddNew,
+    #[at("/admin/delete")]
+    Delete,
+    #[at("/admin/edit/:typ/:part/:name_t")]
+    EditContent {
+        typ: crate::support::EditTypes,
+        name_t: String,
+        part: crate::support::EditTypes,
+    },
+    #[at("/:game")]
+    IndexGame { game: String },
+    #[at("/:game/:related_name")]
+    IndexRelated { game: String, related_name: String },
 }
 // type aliases to make life just a bit easier

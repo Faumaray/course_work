@@ -1,3 +1,5 @@
+use std::str::FromStr;
+
 use serde::{Deserialize, Serialize};
 
 /// Primitives Represents Information Block
@@ -11,10 +13,19 @@ pub struct Info {
 /// Enum Various Types of Body for View content Page by Types of Content[Response Type]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum InfoResponseBodyTypes {
-    Game { info: Info },
-    Location { info: Info },
-    Mob { info: Info },
-    Loot { info: Info },
+    Game {
+        info: Info,
+        background: Option<Vec<u8>>,
+    },
+    Location {
+        info: Info,
+    },
+    Mob {
+        info: Info,
+    },
+    Loot {
+        info: Info,
+    },
 }
 
 /// Enum Various Types of Body for View content Page by Types of Content[Request Type]
@@ -52,8 +63,15 @@ pub enum GetterRequestBodyTypes {
     LootListByGame(String),
     LootListByLocation(String),
     LootListByMob(String),
+    CurrentUser,
 }
-
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub enum GetterResponseBodyTypes {
+    GameList,
+    LocationList,
+    MobList,
+    LootList,
+}
 /// Enum Various Types of Body for AddNew content Page by Types of Content
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum AddNewContentRequestBodyTypes {
@@ -62,16 +80,16 @@ pub enum AddNewContentRequestBodyTypes {
     },
     Location {
         info: Info,
-        game: Option<String>,
+        game: String,
     },
     Mob {
         info: Info,
-        game: Option<String>,
+        game: String,
         location: Vec<String>,
     },
     Loot {
-        infp: Info,
-        game: Option<String>,
+        info: Info,
+        game: String,
         location: Vec<String>,
         mob: Vec<String>,
     },
@@ -80,10 +98,10 @@ pub enum AddNewContentRequestBodyTypes {
 /// Enum Various Types of Body for Delete content Page by Types of Content
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum DeleteContentRequestBodyTypes {
-    Game { id: String },
-    Location { id: String },
-    Mob { id: String },
-    Loot { id: String },
+    Game { id: i32 },
+    Location { id: i32 },
+    Mob { id: i32 },
+    Loot { id: i32 },
 }
 
 /// Enum Various Types of Body for Edit content Page by Types of Content
@@ -109,11 +127,11 @@ pub enum GetterDeleteBlockListResponseTypes {
     /// 1)Id: i32, 2)Name: String
     Game(Vec<(i32, String)>),
     /// 1)Id: i32, 2)GameId: String[i32 nullable], 3)Name: String
-    Location(Vec<(i32, String, String)>),
+    Location(Vec<(i32, Option<i32>, String)>),
     /// 1)Id: i32, 2)GameId: String[i32 nullable], 3)LocationId: String[i32 nullable] , 4)Name: String
-    Mob(Vec<(i32, String, String, String)>),
+    Mob(Vec<(i32, Option<i32>, Option<i32>, String)>),
     /// 1)Id: i32, 2)GameId: String[i32 nullable], 3)LocationId: String[i32 nullable], 4)MobId: String[i32 nullable] , 5)Name: String
-    Loot(Vec<(i32, String, String, String, String)>),
+    Loot(Vec<(i32, Option<i32>, Option<i32>, Option<i32>, String)>),
 }
 /// Enum of Various Types Content
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -127,22 +145,46 @@ pub enum GetterDeleteBlockListRequestTypes {
 /// Enum Various Types of Responses from Server
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum Response {
-    Error(String, String),
-    Success(String),
-    //Registration(todo!("Add struct")),
+    Error(ErrorType, String),
+    Success(SuccessType, String),
     PageShow(InfoResponseBodyTypes),
-    Getter(Vec<String>),
+    Getter(GetterResponseBodyTypes, Vec<String>),
     GetterDeleteBlockList(GetterDeleteBlockListResponseTypes),
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub enum SuccessType {
+    User,
+    Admin,
+    Custon(String),
+}
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub enum ErrorType {
+    Username,
+    Email,
+    Password,
+    Privelege,
+    Custom(String),
+}
 /// Enum Various Types of Requests from Frontend
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum Request {
-    //Registration(todo!("Add struct")),
+    Registration {
+        username: String,
+        password: String,
+        email: String,
+    },
+    Login {
+        email: String,
+        password: String,
+    },
+    LogOut {
+        username: String,
+    },
     PageShow(InfoRequestBodyTypes),
     Getter(GetterRequestBodyTypes),
     GetterDeleteBlockList(GetterDeleteBlockListRequestTypes),
     PageAdd(AddNewContentRequestBodyTypes),
     PageDelete(DeleteContentRequestBodyTypes),
-    PadeEdit(EditContentRequestBodyTypes),
+    PageEdit(EditContentRequestBodyTypes),
 }

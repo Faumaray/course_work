@@ -1,15 +1,13 @@
 use wasm_bindgen::prelude::*;
-mod app;
-mod pages;
+pub mod app;
+mod dummy;
+pub mod pages;
+pub mod support;
 mod switch;
-use app::Index;
+use dummy::Dummy;
 
 #[wasm_bindgen(start)]
 pub fn run_app() -> Result<(), JsValue> {
-    yew::start_app::<Index>();
+    yew::start_app::<Dummy>();
     Ok(())
 }
-
-
-
-

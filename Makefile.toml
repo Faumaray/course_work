@@ -1,0 +1,52 @@
+[config]
+default_to_workspace = false
+
+[tasks.rollup]
+script_runner = "@shell"
+script = ''' 
+rollup ./static/main.js --format iife --file ./static/package.js
+'''
+[tasks.copy_static]
+script_runner = "@shell"
+script = ''' 
+cp -f ./frontend/main.js ./static/main.js
+cp -f ./frontend/index.html ./static/index.html
+'''
+
+
+[tasks.build_client]
+description = "Build client"
+install_crate = { crate_name = "wasm-pack", binary = "wasm-pack", test_arg = "-V" }
+command = "wasm-pack"
+args = ["build", "./frontend","--target","web", "--out-name", "package","-d","../static/", "--release"]
+
+[tasks.build_server]
+description = "Build server"
+command = "cargo"
+args = ["build","--package", "backend","--release"]
+
+[tasks.start]
+description = "Build and start Actix server with client on port 9999"
+command = "cargo"
+args = ["run", "--package", "backend"]
+dependencies = ["build_client","rollup", "build_server", "open" ]
+
+[tasks.open]
+script_runner = "powershell"
+script_extension = "ps1"
+script = ''' 
+Start-process "http://127.0.0.1:9999"
+'''
+
+[tasks.build]
+description = "Build server"
+command = "cargo"
+args = ["build","--package", "backend", "--release"]
+dependencies = ["build_client", "rollup"]
+
+
+[tasks.run]
+description = "Build and Run"
+command = "cargo"
+args = ["run", "--package", "backend", "--release"]
+dependencies = ["build_client","copy_static","rollup","build_server"]

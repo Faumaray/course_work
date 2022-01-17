@@ -1,4 +1,4 @@
-use crate::switch::fetch_post as post;
+use crate::support::fetch_post as post;
 use gloo_file::{callbacks::FileReader, File};
 use middleware::GetterDeleteBlockListRequestTypes as State;
 use std::collections::HashMap;
@@ -56,9 +56,9 @@ impl Component for AddNew {
             Msg::ReceiveResponse(res) => match res {
                 Ok(body) => match body {
                     middleware::Response::Error(_, _) => todo!(),
-                    middleware::Response::Success(_) => todo!(),
+                    middleware::Response::Success(_, _) => todo!(),
                     middleware::Response::PageShow(_) => todo!(),
-                    middleware::Response::Getter(_) => todo!(),
+                    middleware::Response::Getter(_, _) => todo!(),
                     middleware::Response::GetterDeleteBlockList(_) => todo!(),
                 },
                 Err(_) => todo!(),
@@ -76,7 +76,7 @@ impl Component for AddNew {
     fn view(&self, ctx: &Context<Self>) -> Html {
         let inside = match self.state {
             State::Game => {
-                html! {}
+                html! {{"Games"}}
             }
             State::Location => {
                 html! {}
@@ -89,28 +89,33 @@ impl Component for AddNew {
             }
         };
         html! {
-                <div id="main_div" class="main_div">
-                    <center class={stylist::css!("width:100%;height:100%;margin-top: 5%;")}>
-                        <p>{"Please select what your want to add:"}</p>
-                        <input type="radio" id="games" value="Games" name="state" onclick={ctx.link().callback(|_|{
-                            Msg::ChangeState(State::Game)
-                        })}/>
-                        <label for="games">{"Games"}</label>
-                        <input type="radio" id="locations" value="Locations" name="state" onclick={ctx.link().callback(|_|{
-                            Msg::ChangeState(State::Location)
-                        })}/>
-                        <label for="locations">{"Locations"}</label>
-                        <input type="radio" id="mobs" value="Mobs" name="state" onclick={ctx.link().callback(|_|{
-                            Msg::ChangeState(State::Mob)
-                        })}/>
-                        <label for="mobs">{"Mobs"}</label>
-                        <input type="radio" id="loot" value="Loot" name="state" onclick={ctx.link().callback(|_|{
-                            Msg::ChangeState(State::Loot)
-                        })}/>
-                        <label for="loot">{"Loot"}</label>
-                        <br/><br/>
-                        {inside}
-                    </center>
+                <div class="Content">
+                    <div class="Name">
+                        <center class={stylist::css!("width:100%;height:100%;margin-top: 5%;")}>
+                            <p>{"Please select what your want to add:"}</p>
+                            <input type="radio" id="games" value="Games" name="state" onclick={ctx.link().callback(|_|{
+                                Msg::ChangeState(State::Game)
+                            })}/>
+                            <label for="games">{"Games"}</label>
+                            <input type="radio" id="locations" value="Locations" name="state" onclick={ctx.link().callback(|_|{
+                                Msg::ChangeState(State::Location)
+                            })}/>
+                            <label for="locations">{"Locations"}</label>
+                            <input type="radio" id="mobs" value="Mobs" name="state" onclick={ctx.link().callback(|_|{
+                                Msg::ChangeState(State::Mob)
+                            })}/>
+                            <label for="mobs">{"Mobs"}</label>
+                            <input type="radio" id="loot" value="Loot" name="state" onclick={ctx.link().callback(|_|{
+                                Msg::ChangeState(State::Loot)
+                            })}/>
+                            <label for="loot">{"Loot"}</label>
+                            <br/><br/>
+                            {inside}
+                        </center>
+                    </div>
+                    <div class="Inner_Content">
+
+                    </div>
                 </div>
         }
     }

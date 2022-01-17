@@ -5,6 +5,7 @@ pub mod locations;
 pub mod loot;
 pub mod mobs;
 pub mod sqlx_migrations;
+pub mod users;
 use dotenv::dotenv;
 use sea_orm::{sea_query::Expr, *};
 use std::env;
@@ -14,63 +15,59 @@ pub async fn estabilish_connection() -> DatabaseConnection {
     let database_url = env::var("DATABASE_URL").expect("DATABASE_URL must be set");
     Database::connect(database_url).await.unwrap()
 }
-
-//Игры
-pub async fn delete_game(connection: &DatabaseConnection, id: i32) -> Result<DeleteResult, DbErr> {
-    let game: Option<games::Model> = games::Entity::find_by_id(id).one(connection).await?;
-    let game: games::ActiveModel = game.unwrap().into();
-    locations::Entity::update_many()
-        .col_expr(locations::Column::Gameid, Expr::value(Value::Int(None)))
-        .filter(locations::Column::Gameid.eq(id))
-        .exec(connection)
-        .await?;
-    game.delete(connection).await
-}
 pub async fn get_all_games(
     connection: &DatabaseConnection, /*Входные для поиска */
 ) -> Result<Vec<games::Model>, DbErr> {
     games::Entity::find().all(connection).await
 }
-
-pub async fn add_game(connection: &DatabaseConnection, name: String) -> Result<(), DbErr> {
-    let game = games::ActiveModel {
-        game_name: Set(name.clone().to_owned()),
-        ..Default::default()
-    };
-    games::Entity::insert(game).exec(connection).await?;
-    Ok(())
+pub async fn change_game(
+    connection: &DatabaseConnection,
+    name: Option<String>,
+    description: Option<String>,
+    image: Option<Vec<u8>>,
+    original: Option<String>,
+) -> Result<(), DbErr> {
+    if let Some(na) = name {
+        if let Some(orig) = original {
+            let loc = games::Entity::find()
+                .filter(games::Column::GameName.like(&orig))
+                .one(connection)
+                .await?;
+            let mut loc: games::ActiveModel = loc.unwrap().into();
+            loc.game_name = Set(na.to_owned());
+            loc.update(connection).await?;
+            return Ok(());
+        }
+        if let Some(desc) = description {
+            let loc = games::Entity::find()
+                .filter(games::Column::GameName.like(&na))
+                .one(connection)
+                .await?;
+            let mut loc: games::ActiveModel = loc.unwrap().into();
+            loc.description = Set(Some(desc.to_owned()));
+            loc.update(connection).await?;
+            return Ok(());
+        }
+        if let Some(img) = image {
+            let loc = games::Entity::find()
+                .filter(games::Column::GameName.like(&na))
+                .one(connection)
+                .await?;
+            let mut loc: games::ActiveModel = loc.unwrap().into();
+            loc.preview = Set(Some(img.to_owned()));
+            loc.update(connection).await?;
+            return Ok(());
+        }
+    }
+    Err(DbErr::Custom(String::from("Name not provided")))
 }
 
-//Локации
-pub async fn delete_location(
+pub async fn get_game_info_by_name(
     connection: &DatabaseConnection,
-    id: i32,
-) -> Result<DeleteResult, DbErr> {
-    let game: Option<locations::Model> = locations::Entity::find_by_id(id).one(connection).await?;
-    let game: locations::ActiveModel = game.unwrap().into();
-    mobs::Entity::update_many()
-        .col_expr(mobs::Column::Locationid, Expr::value(Value::Int(None)))
-        .filter(mobs::Column::Locationid.eq(id))
-        .exec(connection)
-        .await?;
-    loot::Entity::update_many()
-        .col_expr(loot::Column::Locationid, Expr::value(Value::Int(None)))
-        .filter(loot::Column::Locationid.eq(id))
-        .exec(connection)
-        .await?;
-    game.delete(connection).await
-}
-pub async fn get_all_locations(
-    connection: &DatabaseConnection,
-) -> Result<Vec<locations::Model>, DbErr> {
-    locations::Entity::find().all(connection).await
-}
-pub async fn get_location_by_name(
-    connection: &DatabaseConnection,
-    location_name: String,
-) -> Result<Option<locations::Model>, DbErr> {
-    locations::Entity::find()
-        .filter(locations::Column::LocationName.like(&location_name))
+    name: String,
+) -> Result<Option<games::Model>, DbErr> {
+    games::Entity::find()
+        .filter(games::Column::GameName.like(&name))
         .one(connection)
         .await
 }
@@ -87,6 +84,286 @@ pub async fn get_all_locations_by_game(
         .filter(locations::Column::Gameid.eq(game.id))
         .all(connection)
         .await
+}
+pub async fn get_location_by_name_and_by_game(
+    connection: &DatabaseConnection,
+    name: String,
+    game_name: Option<String>, /*Входные для поиска */
+) -> Result<Option<locations::Model>, DbErr> {
+    if name.is_empty() {
+        return Err(DbErr::RecordNotFound("Name not provided".to_string()));
+    }
+    if let Some(gname) = game_name {
+        let game = games::Entity::find()
+            .filter(games::Column::GameName.like(&gname))
+            .one(connection)
+            .await?
+            .unwrap();
+        locations::Entity::find()
+            .filter(locations::Column::Gameid.eq(game.id))
+            .filter(locations::Column::LocationName.eq(name))
+            .one(connection)
+            .await
+    } else {
+        locations::Entity::find()
+            .filter(locations::Column::LocationName.eq(name))
+            .one(connection)
+            .await
+    }
+}
+
+pub async fn get_all_mobs_by_game(
+    connection: &DatabaseConnection,
+    game_name: String, /*Входные для поиска */
+) -> Result<Vec<mobs::Model>, DbErr> {
+    let game = games::Entity::find()
+        .filter(games::Column::GameName.like(&game_name))
+        .one(connection)
+        .await?
+        .unwrap();
+    mobs::Entity::find()
+        .filter(mobs::Column::GameId.eq(game.id))
+        .all(connection)
+        .await
+}
+pub async fn get_mob_by_name_and_by_other(
+    connection: &DatabaseConnection,
+    name: String,
+    game_name: Option<String>,
+    location_name: Option<String>, /*Входные для поиска */
+) -> Result<Option<mobs::Model>, DbErr> {
+    if name.is_empty() {
+        return Err(DbErr::RecordNotFound("Name not provided".to_string()));
+    }
+    let mut game = None;
+    let mut location = None;
+    if let Some(gname) = game_name {
+        game = games::Entity::find()
+            .filter(games::Column::GameName.like(&gname))
+            .one(connection)
+            .await?;
+    }
+    if let Some(lname) = location_name {
+        location = locations::Entity::find()
+            .filter(locations::Column::LocationName.like(&lname))
+            .one(connection)
+            .await?;
+    }
+    if game.is_some() && location.is_some() {
+        mobs::Entity::find()
+            .filter(mobs::Column::GameId.eq(game.unwrap().id))
+            .filter(mobs::Column::Locationid.eq(location.unwrap().id))
+            .filter(mobs::Column::MobName.eq(name))
+            .one(connection)
+            .await
+    } else if game.is_some() {
+        mobs::Entity::find()
+            .filter(mobs::Column::GameId.eq(game.unwrap().id))
+            .filter(mobs::Column::MobName.eq(name))
+            .one(connection)
+            .await
+    } else if location.is_some() {
+        mobs::Entity::find()
+            .filter(mobs::Column::Locationid.eq(location.unwrap().id))
+            .filter(mobs::Column::MobName.eq(name))
+            .one(connection)
+            .await
+    } else {
+        mobs::Entity::find()
+            .filter(mobs::Column::MobName.eq(name))
+            .one(connection)
+            .await
+    }
+}
+
+pub async fn get_all_loots_by_game(
+    connection: &DatabaseConnection,
+    game_name: String, /*Входные для поиска */
+) -> Result<Vec<loot::Model>, DbErr> {
+    let game = games::Entity::find()
+        .filter(games::Column::GameName.like(&game_name))
+        .one(connection)
+        .await?
+        .unwrap();
+    loot::Entity::find()
+        .filter(loot::Column::GameId.eq(game.id))
+        .all(connection)
+        .await
+}
+pub async fn get_loot_by_name_and_by_other(
+    connection: &DatabaseConnection,
+    name: String,
+    game_name: Option<String>,
+    mob_name: Option<String>,
+    location_name: Option<String>, /*Входные для поиска */
+) -> Result<Option<loot::Model>, DbErr> {
+    if name.is_empty() {
+        return Err(DbErr::RecordNotFound("Name not provided".to_string()));
+    }
+    let mut game = None;
+    let mut location = None;
+    let mut mob = None;
+    if let Some(gname) = game_name {
+        game = games::Entity::find()
+            .filter(games::Column::GameName.like(&gname))
+            .one(connection)
+            .await?;
+    }
+    if let Some(lname) = location_name {
+        location = locations::Entity::find()
+            .filter(locations::Column::LocationName.like(&lname))
+            .one(connection)
+            .await?;
+    }
+    if let Some(mname) = mob_name {
+        mob = mobs::Entity::find()
+            .filter(mobs::Column::MobName.like(&mname))
+            .one(connection)
+            .await?;
+    }
+
+    if game.is_some() && location.is_some() && mob.is_some() {
+        loot::Entity::find()
+            .filter(loot::Column::GameId.eq(game.unwrap().id))
+            .filter(loot::Column::Locationid.eq(location.unwrap().id))
+            .filter(loot::Column::Mobid.eq(mob.unwrap().id))
+            .filter(loot::Column::LootName.eq(name))
+            .one(connection)
+            .await
+    } else if game.is_some() && location.is_some() {
+        loot::Entity::find()
+            .filter(loot::Column::GameId.eq(game.unwrap().id))
+            .filter(loot::Column::Locationid.eq(location.unwrap().id))
+            .filter(loot::Column::LootName.eq(name))
+            .one(connection)
+            .await
+    } else if game.is_some() && mob.is_some() {
+        loot::Entity::find()
+            .filter(loot::Column::GameId.eq(game.unwrap().id))
+            .filter(loot::Column::Mobid.eq(mob.unwrap().id))
+            .filter(loot::Column::LootName.eq(name))
+            .one(connection)
+            .await
+    } else if mob.is_some() && location.is_some() {
+        loot::Entity::find()
+            .filter(loot::Column::Mobid.eq(mob.unwrap().id))
+            .filter(loot::Column::Locationid.eq(location.unwrap().id))
+            .filter(loot::Column::LootName.eq(name))
+            .one(connection)
+            .await
+    } else if location.is_some() {
+        loot::Entity::find()
+            .filter(loot::Column::Locationid.eq(location.unwrap().id))
+            .filter(loot::Column::LootName.eq(name))
+            .one(connection)
+            .await
+    } else if game.is_some() {
+        loot::Entity::find()
+            .filter(loot::Column::GameId.eq(game.unwrap().id))
+            .filter(loot::Column::LootName.eq(name))
+            .one(connection)
+            .await
+    } else if mob.is_some() {
+        loot::Entity::find()
+            .filter(loot::Column::Mobid.eq(mob.unwrap().id))
+            .filter(loot::Column::LootName.eq(name))
+            .one(connection)
+            .await
+    } else {
+        loot::Entity::find()
+            .filter(loot::Column::LootName.eq(name))
+            .one(connection)
+            .await
+    }
+}
+
+pub async fn check_user_privelege(
+    connection: &DatabaseConnection,
+    username: String,
+) -> Result<bool, DbErr> {
+    let user = users::Entity::find()
+        .filter(users::Column::Username.eq(username))
+        .one(connection)
+        .await?;
+    if let Some(usr) = user {
+        return Ok(usr.admin);
+    } else {
+        return Ok(false);
+    }
+}
+pub async fn check_user(
+    connection: &DatabaseConnection,
+    username: String,
+    password: String,
+) -> Result<bool, DbErr> {
+    let user = users::Entity::find()
+        .filter(users::Column::Username.eq(username))
+        .one(connection)
+        .await?;
+    if let Some(usr) = user {
+        if usr.password.eq(&password) {
+            return Ok(usr.admin);
+        } else {
+            Err(DbErr::Custom("Wrong password".to_string()))
+        }
+    } else {
+        return Err(DbErr::RecordNotFound("Username not found".to_string()));
+    }
+}
+
+pub async fn add_user(
+    connection: &DatabaseConnection,
+    name: String,
+    email: String,
+    password: String,
+    admin: bool,
+) -> Result<(), DbErr> {
+    let user = users::ActiveModel {
+        username: Set(name.clone().to_owned()),
+        password: Set(password.clone().to_owned()),
+        email: Set(email.clone().to_owned()),
+        admin: Set(admin.to_owned()),
+        ..Default::default()
+    };
+    users::Entity::insert(user).exec(connection).await?;
+    Ok(())
+}
+//Игры
+pub async fn delete_game(connection: &DatabaseConnection, id: i32) -> Result<DeleteResult, DbErr> {
+    let game: Option<games::Model> = games::Entity::find_by_id(id).one(connection).await?;
+    let game: games::ActiveModel = game.unwrap().into();
+    game.delete(connection).await
+}
+
+pub async fn add_game(
+    connection: &DatabaseConnection,
+    name: String,
+    description: Option<String>,
+    preview: Option<Vec<u8>>,
+) -> Result<(), DbErr> {
+    let game = games::ActiveModel {
+        game_name: Set(name.clone().to_owned()),
+        description: Set(description.to_owned()),
+        preview: Set(preview.to_owned()),
+        ..Default::default()
+    };
+    games::Entity::insert(game).exec(connection).await?;
+    Ok(())
+}
+
+//Локации
+pub async fn delete_location(
+    connection: &DatabaseConnection,
+    id: i32,
+) -> Result<DeleteResult, DbErr> {
+    let game: Option<locations::Model> = locations::Entity::find_by_id(id).one(connection).await?;
+    let game: locations::ActiveModel = game.unwrap().into();
+    game.delete(connection).await
+}
+pub async fn get_all_locations(
+    connection: &DatabaseConnection,
+) -> Result<Vec<locations::Model>, DbErr> {
+    locations::Entity::find().all(connection).await
 }
 pub async fn change_location(
     connection: &DatabaseConnection,
@@ -112,7 +389,7 @@ pub async fn change_location(
                 .one(connection)
                 .await?;
             let mut loc: locations::ActiveModel = loc.unwrap().into();
-            loc.descr = Set(Some(desc.to_owned()));
+            loc.description = Set(Some(desc.to_owned()));
             loc.update(connection).await?;
             return Ok(());
         }
@@ -122,7 +399,7 @@ pub async fn change_location(
                 .one(connection)
                 .await?;
             let mut loc: locations::ActiveModel = loc.unwrap().into();
-            loc.on_map = Set(Some(img.to_owned()));
+            loc.preview = Set(Some(img.to_owned()));
             loc.update(connection).await?;
             return Ok(());
         }
@@ -131,10 +408,10 @@ pub async fn change_location(
 }
 pub async fn add_location(
     connection: &DatabaseConnection,
+    location_name: String,
     game_name: String,
     description: Option<String>,
-    location_name: String,
-    on_map: Vec<u8>,
+    on_map: Option<Vec<u8>>,
 ) -> Result<(), DbErr> {
     if let Some(game) = games::Entity::find()
         .filter(games::Column::GameName.like(&game_name))
@@ -150,8 +427,8 @@ pub async fn add_location(
             let location = locations::ActiveModel {
                 gameid: Set(Some(game.id.to_owned())),
                 location_name: Set(location_name.to_owned()),
-                descr: Set(description.to_owned()),
-                on_map: Set(Some(on_map.to_owned())),
+                description: Set(description.to_owned()),
+                preview: Set(on_map.to_owned()),
                 ..Default::default()
             };
             locations::Entity::insert(location).exec(connection).await?;
@@ -201,7 +478,7 @@ pub async fn change_mob(
                 .one(connection)
                 .await?;
             let mut mob: mobs::ActiveModel = mob.unwrap().into();
-            mob.desct = Set(Some(desc.to_owned()));
+            mob.description = Set(Some(desc.to_owned()));
             mob.update(connection).await?;
             return Ok(());
         }
@@ -218,18 +495,10 @@ pub async fn change_mob(
     }
     Err(DbErr::Custom(String::from("Name not provided")))
 }
-pub async fn get_mob_by_name(
-    connection: &DatabaseConnection,
-    mob_name: String,
-) -> Result<Option<mobs::Model>, DbErr> {
-    mobs::Entity::find()
-        .filter(mobs::Column::MobName.like(&mob_name))
-        .one(connection)
-        .await
-}
 pub async fn add_mob(
     connection: &DatabaseConnection,
     mob_name: String,
+    game_name: String,
     description: Option<String>,
     preview: Option<Vec<u8>>,
     locations: Vec<String>,
@@ -245,7 +514,7 @@ pub async fn add_mob(
                 let mob = mobs::ActiveModel {
                     locationid: Set(Some(location.id.to_owned())),
                     mob_name: Set(mob_name.clone().to_owned()),
-                    desct: Set(description.clone().to_owned()),
+                    description: Set(description.clone().to_owned()),
                     preview: Set(preview.clone().to_owned()),
                     ..Default::default()
                 };
@@ -254,39 +523,24 @@ pub async fn add_mob(
         }
         mobs::Entity::insert_many(mobs).exec(connection).await?;
     } else {
-        let mob = mobs::ActiveModel {
+        let mut mob = mobs::ActiveModel {
             locationid: Set(None),
             mob_name: Set(mob_name.clone().to_owned()),
-            desct: Set(description.clone().to_owned()),
+            description: Set(description.clone().to_owned()),
             preview: Set(preview.clone().to_owned()),
             ..Default::default()
         };
+        if let Some(game) = games::Entity::find()
+            .filter(games::Column::GameName.like(&game_name))
+            .one(connection)
+            .await?
+        {
+            mob.game_id = Set(Some(game.id));
+        }
         mobs::Entity::insert(mob).exec(connection).await?;
     }
     Ok(())
 }
-pub async fn get_all_mobs_by_location(
-    connection: &DatabaseConnection,
-    location: String, /*Входные для поиска */
-) -> Result<Vec<mobs::Model>, DbErr> {
-    if location.is_empty() {
-        mobs::Entity::find()
-            .filter(Expr::col(mobs::Column::Locationid).is_null())
-            .all(connection)
-            .await
-    } else {
-        let location = locations::Entity::find()
-            .filter(locations::Column::LocationName.like(&location))
-            .one(connection)
-            .await?
-            .unwrap();
-        mobs::Entity::find()
-            .filter(mobs::Column::Locationid.eq(Some(location.id)))
-            .all(connection)
-            .await
-    }
-}
-
 //Лут
 pub async fn delete_loot(connection: &DatabaseConnection, id: i32) -> Result<DeleteResult, DbErr> {
     let game: Option<loot::Model> = loot::Entity::find_by_id(id).one(connection).await?;
@@ -299,6 +553,7 @@ pub async fn get_all_loot(connection: &DatabaseConnection) -> Result<Vec<loot::M
 pub async fn add_loot(
     connection: &DatabaseConnection,
     loot_name: String,
+    game_name: String,
     description: Option<String>,
     preview: Option<Vec<u8>>,
     locations: Vec<String>,
@@ -318,23 +573,37 @@ pub async fn add_loot(
                         .one(connection)
                         .await?
                     {
-                        let lt = loot::ActiveModel {
+                        let mut lt = loot::ActiveModel {
                             mobid: Set(Some(mb.id.to_owned())),
                             locationid: Set(Some(location.id.to_owned())),
                             loot_name: Set(loot_name.clone().to_owned()),
-                            descr: Set(description.clone().to_owned()),
+                            description: Set(description.clone().to_owned()),
                             preview: Set(preview.clone().to_owned()),
                             ..Default::default()
                         };
+                        if let Some(game) = games::Entity::find()
+                            .filter(games::Column::GameName.like(&game_name))
+                            .one(connection)
+                            .await?
+                        {
+                            lt.game_id = Set(Some(game.id));
+                        }
                         loot_list.push(lt);
                     } else {
-                        let lt = loot::ActiveModel {
+                        let mut lt = loot::ActiveModel {
                             locationid: Set(Some(location.id.to_owned())),
                             loot_name: Set(loot_name.clone().to_owned()),
-                            descr: Set(description.clone().to_owned()),
+                            description: Set(description.clone().to_owned()),
                             preview: Set(preview.clone().to_owned()),
                             ..Default::default()
                         };
+                        if let Some(game) = games::Entity::find()
+                            .filter(games::Column::GameName.like(&game_name))
+                            .one(connection)
+                            .await?
+                        {
+                            lt.game_id = Set(Some(game.id));
+                        }
                         loot_list.push(lt);
                     }
                 }
@@ -370,7 +639,7 @@ pub async fn change_loot(
                 .one(connection)
                 .await?;
             let mut loot_one: loot::ActiveModel = loot_one.unwrap().into();
-            loot_one.descr = Set(Some(desc.to_owned()));
+            loot_one.description = Set(Some(desc.to_owned()));
             loot_one.update(connection).await?;
             return Ok(());
         }
@@ -386,34 +655,4 @@ pub async fn change_loot(
         }
     }
     Err(DbErr::Custom(String::from("Name not provided")))
-}
-pub async fn get_loot_by_name(
-    connection: &DatabaseConnection,
-    loot_name: String,
-) -> Result<Option<loot::Model>, DbErr> {
-    loot::Entity::find()
-        .filter(loot::Column::LootName.like(&loot_name))
-        .one(connection)
-        .await
-}
-pub async fn get_all_loot_by_location(
-    connection: &DatabaseConnection,
-    location: String, /*Входные для поиска */
-) -> Result<Vec<loot::Model>, DbErr> {
-    if location.is_empty() {
-        loot::Entity::find()
-            .filter(Expr::col(loot::Column::Locationid).is_null())
-            .all(connection)
-            .await
-    } else {
-        let location = locations::Entity::find()
-            .filter(locations::Column::LocationName.like(&location))
-            .one(connection)
-            .await?
-            .unwrap();
-        loot::Entity::find()
-            .filter(loot::Column::Locationid.eq(Some(location.id)))
-            .all(connection)
-            .await
-    }
 }
