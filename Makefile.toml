@@ -11,7 +11,7 @@ script_runner = "@shell"
 script = ''' 
 cp -f ./frontend/main.js ./static/main.js
 cp -f ./frontend/index.html ./static/index.html
-cp -f ./forntend/background.jpeg ./static/background.jpeg
+cp -f ./frontend/background.jpeg ./static/background.jpeg
 '''
 
 
