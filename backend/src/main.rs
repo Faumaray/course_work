@@ -1179,7 +1179,7 @@ async fn main() -> std::io::Result<()> {
             .service(related_index)
             .service(Files::new("/", "./static").index_file("index.html"))
     })
-    .bind(("127.0.0.1", port))?
+    .bind(("0.0.0.0", port))?
     .run()
     .await
 }

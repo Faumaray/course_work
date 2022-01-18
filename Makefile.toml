@@ -11,6 +11,7 @@ script_runner = "@shell"
 script = ''' 
 cp -f ./frontend/main.js ./static/main.js
 cp -f ./frontend/index.html ./static/index.html
+cp -f ./forntend/background.jpeg ./static/background.jpeg
 '''
 
 
@@ -42,7 +43,7 @@ Start-process "http://127.0.0.1:9999"
 description = "Build server"
 command = "cargo"
 args = ["build","--package", "backend", "--release"]
-dependencies = ["build_client", "rollup"]
+dependencies = ["build_client","copy_static", "rollup"]
 
 
 [tasks.run]
