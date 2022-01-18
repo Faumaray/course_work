@@ -4,14 +4,21 @@ default_to_workspace = false
 [tasks.rollup]
 script_runner = "@shell"
 script = ''' 
-rollup ./frontend/main.js --format iife --file ./frontend/pkg/package.js
+rollup ./static/main.js --format iife --file ./static/package.js
 '''
+[tasks.copy_static]
+script_runner = "@shell"
+script = ''' 
+cp -f ./frontend/main.js ./static/main.js
+cp -f ./frontend/index.html ./static/index.html
+'''
+
 
 [tasks.build_client]
 description = "Build client"
 install_crate = { crate_name = "wasm-pack", binary = "wasm-pack", test_arg = "-V" }
 command = "wasm-pack"
-args = ["build", "./frontend","--target","web", "--out-name", "package", "--release"]
+args = ["build", "./frontend","--target","web", "--out-name", "package","-d","../static/", "--release"]
 
 [tasks.build_server]
 description = "Build server"
@@ -37,8 +44,9 @@ command = "cargo"
 args = ["build","--package", "backend", "--release"]
 dependencies = ["build_client", "rollup"]
 
+
 [tasks.run]
 description = "Build and Run"
 command = "cargo"
 args = ["run", "--package", "backend", "--release"]
-dependencies = ["build_client","rollup","build_server"]
+dependencies = ["build_client","copy_static","rollup","build_server"]

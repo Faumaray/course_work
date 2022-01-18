@@ -1,1048 +1,1155 @@
 mod db;
+use actix_session::{CookieSession, Session};
+use rand::Rng;
 use std::env;
 
 use actix_files::{Files, NamedFile};
-use actix_web::{
-    post,
-    web::{get, post, Data, Json},
-    App, HttpServer, Responder, Result,
-};
+use actix_web::{get, post, web, App, HttpServer, Responder, Result};
 use db::*;
-#[post("/delete")]
+#[post("/admin/delete")]
 async fn delete(
-    data: Data<DatabaseState>,
-    request_data: Json<middleware::DeleteBody>,
+    data: web::Data<DatabaseState>,
+    request_data: web::Json<middleware::Request>,
 ) -> impl Responder {
-    match request_data.kind {
-        middleware::DeleteRequest::Initial => {
-            let mut games: Vec<(i32, String)> = Vec::new();
-            let mut locations: Vec<(i32, i32, String)> = Vec::new();
-            let mut mobs: Vec<(i32, Option<i32>, String)> = Vec::new();
-            let mut loot: Vec<(i32, Option<i32>, Option<i32>, String)> = Vec::new();
-            match db::get_all_games(&data.connection).await {
-                Ok(list) => {
-                    for model in list {
-                        games.push((model.id, model.game_name));
+    match request_data.0 {
+        middleware::Request::GetterDeleteBlockList(list_type) => match list_type {
+            middleware::GetterDeleteBlockListRequestTypes::Game => {
+                match db::get_all_games(&data.connection).await {
+                    Ok(vc) => {
+                        return web::Json(middleware::Response::GetterDeleteBlockList(
+                            middleware::GetterDeleteBlockListResponseTypes::Game(
+                                vc.iter()
+                                    .map(|game| (game.id, game.game_name.clone()))
+                                    .collect::<Vec<(i32, String)>>(),
+                            ),
+                        ))
                     }
-                }
-                Err(err) => {
-                    println!("Games Error {}", err);
-                    return Json(middleware::DeleteBody {
-                        kind: middleware::DeleteRequest::Error,
-                        games: None,
-                        locations: None,
-                        mobs: None,
-                        loots: None,
-                        id: None,
-                        locationid: None,
-                        mobid: None,
-                        name: None,
-                    });
-                }
-            }
-            match db::get_all_locations(&data.connection).await {
-                Ok(list) => {
-                    for model in list {
-                        locations.push((
-                            model.id,
-                            model.gameid.unwrap_or_default(),
-                            model.location_name,
+                    Err(error) => {
+                        return web::Json(middleware::Response::Error(
+                            middleware::ErrorType::Custom(String::from("Database error occured")),
+                            format!("{}", error),
                         ));
                     }
                 }
-                Err(err) => {
-                    println!("Locs Error {}", err);
-                    return Json(middleware::DeleteBody {
-                        kind: middleware::DeleteRequest::Error,
-                        games: None,
-                        locations: None,
-                        mobs: None,
-                        loots: None,
-                        id: None,
-                        locationid: None,
-                        mobid: None,
-                        name: None,
-                    });
-                }
             }
-            match db::get_all_mobs(&data.connection).await {
-                Ok(list) => {
-                    for model in list {
-                        mobs.push((model.id, model.locationid, model.mob_name));
+            middleware::GetterDeleteBlockListRequestTypes::Location => {
+                match db::get_all_locations(&data.connection).await {
+                    Ok(vc) => {
+                        return web::Json(middleware::Response::GetterDeleteBlockList(
+                            middleware::GetterDeleteBlockListResponseTypes::Location(
+                                vc.iter()
+                                    .map(|location| {
+                                        (
+                                            location.id,
+                                            location.gameid.clone(),
+                                            location.location_name.clone(),
+                                        )
+                                    })
+                                    .collect::<Vec<(i32, Option<i32>, String)>>(),
+                            ),
+                        ))
+                    }
+                    Err(error) => {
+                        return web::Json(middleware::Response::Error(
+                            middleware::ErrorType::Custom(String::from("Database error occured")),
+                            format!("{}", error),
+                        ));
                     }
                 }
-                Err(err) => {
-                    println!("Mobs Error {}", err);
-                    return Json(middleware::DeleteBody {
-                        kind: middleware::DeleteRequest::Error,
-                        games: None,
-                        locations: None,
-                        mobs: None,
-                        loots: None,
-                        id: None,
-                        locationid: None,
-                        mobid: None,
-                        name: None,
-                    });
-                }
             }
-            match db::get_all_loot(&data.connection).await {
-                Ok(list) => {
-                    for model in list {
-                        loot.push((model.id, model.locationid, model.mobid, model.loot_name));
+            middleware::GetterDeleteBlockListRequestTypes::Mob => {
+                match db::get_all_mobs(&data.connection).await {
+                    Ok(vc) => {
+                        return web::Json(middleware::Response::GetterDeleteBlockList(
+                            middleware::GetterDeleteBlockListResponseTypes::Mob(
+                                vc.iter()
+                                    .map(|mob| {
+                                        (
+                                            mob.id,
+                                            mob.game_id.clone(),
+                                            mob.locationid.clone(),
+                                            mob.mob_name.clone(),
+                                        )
+                                    })
+                                    .collect::<Vec<(i32, Option<i32>, Option<i32>, String)>>(),
+                            ),
+                        ))
+                    }
+                    Err(error) => {
+                        return web::Json(middleware::Response::Error(
+                            middleware::ErrorType::Custom(String::from("Database error occured")),
+                            format!("{}", error),
+                        ));
                     }
                 }
-                Err(err) => {
-                    println!("Loot Error {}", err);
-                    return Json(middleware::DeleteBody {
-                        kind: middleware::DeleteRequest::Error,
-                        games: None,
-                        locations: None,
-                        mobs: None,
-                        loots: None,
-                        id: None,
-                        locationid: None,
-                        mobid: None,
-                        name: None,
-                    });
-                }
             }
-            return Json(middleware::DeleteBody {
-                kind: middleware::DeleteRequest::Initial,
-                games: Some(games),
-                locations: Some(locations),
-                mobs: Some(mobs),
-                loots: Some(loot),
-                id: None,
-                locationid: None,
-                mobid: None,
-                name: None,
-            });
-        }
-        middleware::DeleteRequest::Game => {
-            match db::delete_game(&data.connection, request_data.id.unwrap()).await {
-                Ok(_) => {
-                    return Json(middleware::DeleteBody {
-                        kind: middleware::DeleteRequest::Success,
-                        games: None,
-                        locations: None,
-                        mobs: None,
-                        loots: None,
-                        id: None,
-                        locationid: None,
-                        mobid: None,
-                        name: None,
-                    });
+            middleware::GetterDeleteBlockListRequestTypes::Loot => {
+                match db::get_all_loot(&data.connection).await {
+                    Ok(vc) => {
+                        return web::Json(middleware::Response::GetterDeleteBlockList(
+                            middleware::GetterDeleteBlockListResponseTypes::Loot(
+                                vc.iter()
+                                    .map(|loot| (loot.id,loot.game_id.clone(),loot.locationid.clone(),loot.mobid.clone(), loot.loot_name.clone()))
+                                    .collect::<Vec<(i32, Option<i32>,Option<i32>,Option<i32>,String)>>(),
+                            ),
+                        ))
+                    }
+                    Err(error) => {
+                        return web::Json(middleware::Response::Error(
+                            middleware::ErrorType::Custom(String::from("Database error occured")),
+                            format!("{}", error),
+                        ));
+                    }
                 }
-                Err(_) => {
-                    return Json(middleware::DeleteBody {
-                        kind: middleware::DeleteRequest::Error,
-                        games: None,
-                        locations: None,
-                        mobs: None,
-                        loots: None,
-                        id: None,
-                        locationid: None,
-                        mobid: None,
-                        name: None,
-                    });
-                }
-            }
-        }
-        middleware::DeleteRequest::Location => {
-            match db::delete_location(&data.connection, request_data.id.unwrap()).await {
-                Ok(_) => {
-                    return Json(middleware::DeleteBody {
-                        kind: middleware::DeleteRequest::Success,
-                        games: None,
-                        locations: None,
-                        mobs: None,
-                        loots: None,
-                        id: None,
-                        locationid: None,
-                        mobid: None,
-                        name: None,
-                    });
-                }
-                Err(_) => {
-                    return Json(middleware::DeleteBody {
-                        kind: middleware::DeleteRequest::Error,
-                        games: None,
-                        locations: None,
-                        mobs: None,
-                        loots: None,
-                        id: None,
-                        locationid: None,
-                        mobid: None,
-                        name: None,
-                    });
-                }
-            }
-        }
-        middleware::DeleteRequest::Mob => {
-            match db::delete_mob(&data.connection, request_data.id.unwrap()).await {
-                Ok(_) => {
-                    return Json(middleware::DeleteBody {
-                        kind: middleware::DeleteRequest::Success,
-                        games: None,
-                        locations: None,
-                        mobs: None,
-                        loots: None,
-                        id: None,
-                        locationid: None,
-                        mobid: None,
-                        name: None,
-                    });
-                }
-                Err(_) => {
-                    return Json(middleware::DeleteBody {
-                        kind: middleware::DeleteRequest::Error,
-                        games: None,
-                        locations: None,
-                        mobs: None,
-                        loots: None,
-                        id: None,
-                        locationid: None,
-                        mobid: None,
-                        name: None,
-                    });
-                }
-            }
-        }
-        middleware::DeleteRequest::Loot => {
-            match db::delete_loot(&data.connection, request_data.id.unwrap()).await {
-                Ok(_) => {
-                    return Json(middleware::DeleteBody {
-                        kind: middleware::DeleteRequest::Success,
-                        games: None,
-                        locations: None,
-                        mobs: None,
-                        loots: None,
-                        id: None,
-                        locationid: None,
-                        mobid: None,
-                        name: None,
-                    });
-                }
-                Err(_) => {
-                    return Json(middleware::DeleteBody {
-                        kind: middleware::DeleteRequest::Error,
-                        games: None,
-                        locations: None,
-                        mobs: None,
-                        loots: None,
-                        id: None,
-                        locationid: None,
-                        mobid: None,
-                        name: None,
-                    });
-                }
-            }
-        }
-        middleware::DeleteRequest::Success => todo!(),
-        middleware::DeleteRequest::Error => todo!(),
-    }
-}
-#[post("/add")]
-async fn add(data: Data<DatabaseState>, request_data: Json<middleware::AddBody>) -> impl Responder {
-    match request_data.kind {
-        middleware::AddRequest::AddGame => {
-            match db::add_game(&data.connection, request_data.game_name.clone().unwrap()).await {
-                Ok(_) => {
-                    return Json(middleware::AddBody {
-                        kind: middleware::AddRequest::Success,
-                        game_list: None,
-                        location_list: None,
-                        mob_list: None,
-                        game_name: None,
-                        location_name: None,
-                        mob_name: None,
-                        loot_name: None,
-                        description: None,
-                        preview: None,
-                    })
-                }
-                Err(_) => {
-                    return Json(middleware::AddBody {
-                        kind: middleware::AddRequest::Error,
-                        game_list: None,
-                        location_list: None,
-                        mob_list: None,
-                        game_name: None,
-                        location_name: None,
-                        mob_name: None,
-                        loot_name: None,
-                        description: None,
-                        preview: None,
-                    })
-                }
-            }
-        }
-        middleware::AddRequest::AddLocation => {
-            match db::add_location(
-                &data.connection,
-                request_data.game_name.clone().unwrap(),
-                request_data.description.clone(),
-                request_data.location_name.clone().unwrap().clone()[0].clone(),
-                request_data.preview.clone().unwrap_or_default(),
-            )
-            .await
-            {
-                Ok(_) => {
-                    return Json(middleware::AddBody {
-                        kind: middleware::AddRequest::Success,
-                        game_list: None,
-                        location_list: None,
-                        mob_list: None,
-                        game_name: None,
-                        location_name: None,
-                        mob_name: None,
-                        loot_name: None,
-                        description: None,
-                        preview: None,
-                    })
-                }
-                Err(_) => {
-                    return Json(middleware::AddBody {
-                        kind: middleware::AddRequest::Error,
-                        game_list: None,
-                        location_list: None,
-                        mob_list: None,
-                        game_name: None,
-                        location_name: None,
-                        mob_name: None,
-                        loot_name: None,
-                        description: None,
-                        preview: None,
-                    })
-                }
-            }
-        }
-        middleware::AddRequest::AddMob => {
-            match db::add_mob(
-                &data.connection,
-                request_data.mob_name.clone().unwrap().clone()[0].clone(),
-                request_data.description.clone(),
-                request_data.preview.clone(),
-                request_data.location_name.clone().unwrap().clone(),
-            )
-            .await
-            {
-                Ok(_) => {
-                    return Json(middleware::AddBody {
-                        kind: middleware::AddRequest::Success,
-                        game_list: None,
-                        location_list: None,
-                        mob_list: None,
-                        game_name: None,
-                        location_name: None,
-                        mob_name: None,
-                        loot_name: None,
-                        description: None,
-                        preview: None,
-                    })
-                }
-                Err(_) => {
-                    return Json(middleware::AddBody {
-                        kind: middleware::AddRequest::Error,
-                        game_list: None,
-                        location_list: None,
-                        mob_list: None,
-                        game_name: None,
-                        location_name: None,
-                        mob_name: None,
-                        loot_name: None,
-                        description: None,
-                        preview: None,
-                    })
-                }
-            }
-        }
-        middleware::AddRequest::AddLoot => match db::add_loot(
-            &data.connection,
-            request_data.loot_name.clone().unwrap(),
-            request_data.description.clone(),
-            request_data.preview.clone(),
-            request_data.location_name.clone().unwrap().clone(),
-            request_data.mob_name.clone().unwrap().clone(),
-        )
-        .await
-        {
-            Ok(_) => {
-                return Json(middleware::AddBody {
-                    kind: middleware::AddRequest::Success,
-                    game_list: None,
-                    location_list: None,
-                    mob_list: None,
-                    game_name: None,
-                    location_name: None,
-                    mob_name: None,
-                    loot_name: None,
-                    description: None,
-                    preview: None,
-                })
-            }
-            Err(_) => {
-                return Json(middleware::AddBody {
-                    kind: middleware::AddRequest::Error,
-                    game_list: None,
-                    location_list: None,
-                    mob_list: None,
-                    game_name: None,
-                    location_name: None,
-                    mob_name: None,
-                    loot_name: None,
-                    description: None,
-                    preview: None,
-                })
             }
         },
-        middleware::AddRequest::GetGameList => match db::get_all_games(&data.connection).await {
-            Ok(games) => {
-                let mut out = Vec::with_capacity(games.len());
-                for model in games {
-                    out.push(model.game_name);
+        middleware::Request::PageDelete(delete_type) => match delete_type {
+            middleware::DeleteContentRequestBodyTypes::Game { id } => {
+                match db::delete_game(&data.connection, id).await {
+                    Ok(_) => {
+                        return web::Json(middleware::Response::Success(
+                            middleware::SuccessType::Custon("".to_string()),
+                            "".to_string(),
+                        ));
+                    }
+                    Err(error) => {
+                        return web::Json(middleware::Response::Error(
+                            middleware::ErrorType::Custom(String::from("Database error occured")),
+                            format!("{}", error),
+                        ));
+                    }
                 }
-                return Json(middleware::AddBody {
-                    kind: middleware::AddRequest::GetGameList,
-                    game_list: Some(out),
-                    location_list: None,
-                    mob_list: None,
-                    game_name: None,
-                    location_name: None,
-                    mob_name: None,
-                    loot_name: None,
-                    description: None,
-                    preview: None,
-                });
             }
-            Err(err) => {
-                return Json(middleware::AddBody {
-                    kind: middleware::AddRequest::Error,
-                    game_list: None,
-                    location_list: None,
-                    mob_list: None,
-                    game_name: None,
-                    location_name: None,
-                    mob_name: None,
-                    loot_name: None,
-                    description: None,
-                    preview: None,
-                })
+            middleware::DeleteContentRequestBodyTypes::Location { id } => {
+                match db::delete_location(&data.connection, id).await {
+                    Ok(_) => {
+                        return web::Json(middleware::Response::Success(
+                            middleware::SuccessType::Custon("".to_string()),
+                            "".to_string(),
+                        ));
+                    }
+                    Err(error) => {
+                        return web::Json(middleware::Response::Error(
+                            middleware::ErrorType::Custom(String::from("Database error occured")),
+                            format!("{}", error),
+                        ));
+                    }
+                }
+            }
+            middleware::DeleteContentRequestBodyTypes::Mob { id } => {
+                match db::delete_mob(&data.connection, id).await {
+                    Ok(_) => {
+                        return web::Json(middleware::Response::Success(
+                            middleware::SuccessType::Custon("".to_string()),
+                            "".to_string(),
+                        ));
+                    }
+                    Err(error) => {
+                        return web::Json(middleware::Response::Error(
+                            middleware::ErrorType::Custom(String::from("Database error occured")),
+                            format!("{}", error),
+                        ));
+                    }
+                }
+            }
+            middleware::DeleteContentRequestBodyTypes::Loot { id } => {
+                match db::delete_loot(&data.connection, id).await {
+                    Ok(_) => {
+                        return web::Json(middleware::Response::Success(
+                            middleware::SuccessType::Custon("".to_string()),
+                            "".to_string(),
+                        ));
+                    }
+                    Err(error) => {
+                        return web::Json(middleware::Response::Error(
+                            middleware::ErrorType::Custom(String::from("Database error occured")),
+                            format!("{}", error),
+                        ));
+                    }
+                }
             }
         },
-        middleware::AddRequest::GetLocationList => {
-            match db::get_all_locations_by_game(
-                &data.connection,
-                request_data.game_name.clone().unwrap(),
-            )
-            .await
-            {
-                Ok(games) => {
-                    let mut out = Vec::with_capacity(games.len());
-                    for model in games {
-                        out.push(model.location_name);
-                    }
-                    return Json(middleware::AddBody {
-                        kind: middleware::AddRequest::GetLocationList,
-                        game_list: None,
-                        location_list: Some(out),
-                        mob_list: None,
-                        game_name: None,
-                        location_name: None,
-                        mob_name: None,
-                        loot_name: None,
-                        description: None,
-                        preview: None,
-                    });
-                }
-                Err(err) => {
-                    return Json(middleware::AddBody {
-                        kind: middleware::AddRequest::Error,
-                        game_list: None,
-                        location_list: None,
-                        mob_list: None,
-                        game_name: None,
-                        location_name: None,
-                        mob_name: None,
-                        loot_name: None,
-                        description: None,
-                        preview: None,
-                    })
-                }
-            }
-        }
-        middleware::AddRequest::GetMobList => {
-            let mut out: Vec<String> = Vec::new();
-            for location in request_data.location_name.clone().unwrap() {
-                match db::get_all_mobs_by_location(&data.connection, location.clone()).await {
-                    Ok(models) => {
-                        for model in models {
-                            let mut pres = false;
-                            for present in &out {
-                                if model.mob_name == *present {
-                                    pres = true;
-                                    break;
-                                }
-                            }
-                            if !pres {
-                                out.push(model.mob_name.clone());
-                            }
-                        }
-                    }
-                    Err(_) => {
-                        return Json(middleware::AddBody {
-                            kind: middleware::AddRequest::Error,
-                            game_list: None,
-                            location_list: None,
-                            mob_list: None,
-                            game_name: None,
-                            location_name: None,
-                            mob_name: None,
-                            loot_name: None,
-                            description: None,
-                            preview: None,
-                        })
-                    }
-                }
-            }
-            return Json(middleware::AddBody {
-                kind: middleware::AddRequest::GetMobList,
-                game_list: None,
-                location_list: None,
-                mob_list: Some(out),
-                game_name: None,
-                location_name: None,
-                mob_name: None,
-                loot_name: None,
-                description: None,
-                preview: None,
-            });
-        }
         _ => {
-            return Json(middleware::AddBody {
-                kind: middleware::AddRequest::Error,
-                game_list: None,
-                location_list: None,
-                mob_list: None,
-                game_name: None,
-                location_name: None,
-                mob_name: None,
-                loot_name: None,
-                description: None,
-                preview: None,
-            })
+            return web::Json(middleware::Response::Error(
+                middleware::ErrorType::Custom(String::from("Not yet implemented")),
+                String::from("Basic"),
+            ));
         }
     }
 }
-#[post("/edit")]
-async fn editor(
-    data: Data<DatabaseState>,
-    request_data: Json<middleware::EditRequestBody>,
+#[post("/admin/add")]
+async fn add(
+    data: web::Data<DatabaseState>,
+    request_data: web::Json<middleware::Request>,
 ) -> impl Responder {
-    match request_data.kind {
-        middleware::EditRequest::Initial => match request_data.edit_type {
-            middleware::EditType::Game => {
-                return Json(middleware::EditResponseBody {
-                    kind: middleware::EditRequest::Error,
-                    description: None,
-                    image: None,
-                    name: request_data.name.clone(),
-                });
+    match request_data.0 {
+        middleware::Request::Getter(bodytype) => match bodytype {
+            middleware::GetterRequestBodyTypes::GameList => {
+                match db::get_all_games(&data.connection).await {
+                    Ok(games) => {
+                        let vs: Vec<String> = games
+                            .iter()
+                            .map(|game| game.game_name.clone())
+                            .collect::<Vec<String>>();
+                        return web::Json(middleware::Response::Getter(
+                            middleware::GetterResponseBodyTypes::GameList,
+                            vs,
+                        ));
+                    }
+                    Err(error) => {
+                        return web::Json(middleware::Response::Error(
+                            middleware::ErrorType::Custom(String::from("Database error occured")),
+                            format!("{}", error),
+                        ));
+                    }
+                }
             }
-            middleware::EditType::Location => {
-                match db::get_location_by_name(&data.connection, request_data.name.clone().unwrap())
-                    .await
+            middleware::GetterRequestBodyTypes::MobListByGame(gamename) => {
+                match db::get_all_mobs_by_game(&data.connection, gamename).await {
+                    Ok(mobs) => {
+                        let vs: Vec<String> = mobs
+                            .iter()
+                            .map(|mob| mob.mob_name.clone())
+                            .collect::<Vec<String>>();
+                        return web::Json(middleware::Response::Getter(
+                            middleware::GetterResponseBodyTypes::MobList,
+                            vs,
+                        ));
+                    }
+                    Err(error) => {
+                        return web::Json(middleware::Response::Error(
+                            middleware::ErrorType::Custom(String::from("Database error occured")),
+                            format!("{}", error),
+                        ));
+                    }
+                }
+            }
+            middleware::GetterRequestBodyTypes::LootListByGame(gamename) => {
+                match db::get_all_loots_by_game(&data.connection, gamename).await {
+                    Ok(loots) => {
+                        let vs: Vec<String> = loots
+                            .iter()
+                            .map(|loot| loot.loot_name.clone())
+                            .collect::<Vec<String>>();
+                        return web::Json(middleware::Response::Getter(
+                            middleware::GetterResponseBodyTypes::LootList,
+                            vs,
+                        ));
+                    }
+                    Err(error) => {
+                        return web::Json(middleware::Response::Error(
+                            middleware::ErrorType::Custom(String::from("Database error occured")),
+                            format!("{}", error),
+                        ));
+                    }
+                }
+            }
+            middleware::GetterRequestBodyTypes::LocationListByGame(gamename) => {
+                match db::get_all_locations_by_game(&data.connection, gamename).await {
+                    Ok(locations) => {
+                        let vs: Vec<String> = locations
+                            .iter()
+                            .map(|loc| loc.location_name.clone())
+                            .collect::<Vec<String>>();
+                        return web::Json(middleware::Response::Getter(
+                            middleware::GetterResponseBodyTypes::LocationList,
+                            vs,
+                        ));
+                    }
+                    Err(error) => {
+                        return web::Json(middleware::Response::Error(
+                            middleware::ErrorType::Custom(String::from("Database error occured")),
+                            format!("{}", error),
+                        ));
+                    }
+                }
+            }
+
+            _ => {
+                return web::Json(middleware::Response::Error(
+                    middleware::ErrorType::Custom(String::from("Wrong type")),
+                    String::from("Not supported getter type for this page"),
+                ));
+            }
+        },
+        middleware::Request::PageAdd(body_type) => match body_type {
+            middleware::AddNewContentRequestBodyTypes::Game { info } => {
+                match db::add_game(
+                    &data.connection,
+                    info.name,
+                    info.informations_block,
+                    info.preview,
+                )
+                .await
                 {
-                    Ok(data) => {
-                        if let Some(model) = data {
-                            return Json(middleware::EditResponseBody {
-                                kind: middleware::EditRequest::Initial,
-                                description: model.descr,
-                                image: model.on_map,
-                                name: Some(model.location_name),
-                            });
-                        } else {
-                            return Json(middleware::EditResponseBody {
-                                kind: middleware::EditRequest::Error,
-                                description: None,
-                                image: None,
-                                name: None,
-                            });
+                    Ok(_) => {
+                        return web::Json(middleware::Response::Success(
+                            middleware::SuccessType::Custon("".to_string()),
+                            "".to_string(),
+                        ));
+                    }
+                    Err(error) => {
+                        return web::Json(middleware::Response::Error(
+                            middleware::ErrorType::Custom(String::from("Database error occured")),
+                            format!("{}", error),
+                        ));
+                    }
+                }
+            }
+            middleware::AddNewContentRequestBodyTypes::Location { info, game } => {
+                match db::add_location(
+                    &data.connection,
+                    info.name,
+                    game,
+                    info.informations_block,
+                    info.preview,
+                )
+                .await
+                {
+                    Ok(_) => {
+                        return web::Json(middleware::Response::Success(
+                            middleware::SuccessType::Custon("".to_string()),
+                            "".to_string(),
+                        ));
+                    }
+                    Err(error) => {
+                        return web::Json(middleware::Response::Error(
+                            middleware::ErrorType::Custom(String::from("Database error occured")),
+                            format!("{}", error),
+                        ));
+                    }
+                }
+            }
+            middleware::AddNewContentRequestBodyTypes::Mob {
+                info,
+                game,
+                location,
+            } => {
+                match db::add_mob(
+                    &data.connection,
+                    info.name,
+                    game,
+                    info.informations_block,
+                    info.preview,
+                    location,
+                )
+                .await
+                {
+                    Ok(_) => {
+                        return web::Json(middleware::Response::Success(
+                            middleware::SuccessType::Custon("".to_string()),
+                            "".to_string(),
+                        ));
+                    }
+                    Err(error) => {
+                        return web::Json(middleware::Response::Error(
+                            middleware::ErrorType::Custom(String::from("Database error occured")),
+                            format!("{}", error),
+                        ));
+                    }
+                }
+            }
+            middleware::AddNewContentRequestBodyTypes::Loot {
+                info,
+                game,
+                location,
+                mob,
+            } => {
+                match db::add_loot(
+                    &data.connection,
+                    info.name,
+                    game,
+                    info.informations_block,
+                    info.preview,
+                    location,
+                    mob,
+                )
+                .await
+                {
+                    Ok(_) => {
+                        return web::Json(middleware::Response::Success(
+                            middleware::SuccessType::Custon("".to_string()),
+                            "".to_string(),
+                        ));
+                    }
+                    Err(error) => {
+                        return web::Json(middleware::Response::Error(
+                            middleware::ErrorType::Custom(String::from("Database error occured")),
+                            format!("{}", error),
+                        ));
+                    }
+                }
+            }
+        },
+        _ => {
+            return web::Json(middleware::Response::Error(
+                middleware::ErrorType::Custom(String::from("Not yet implemented")),
+                String::from("Basic"),
+            ));
+        }
+    }
+}
+#[post("/admin/edit/{type}/{part}/{name}")]
+async fn editor(
+    path: web::Path<(String, String, String)>,
+    data: web::Data<DatabaseState>,
+    request_data: web::Json<middleware::Request>,
+) -> impl Responder {
+    match request_data.0 {
+        middleware::Request::PageEdit(innertype) => match innertype {
+            middleware::EditContentRequestBodyTypes::Mob(part) => match part {
+                middleware::EditContentPartTypes::Name { original, new } => {
+                    match db::change_mob(
+                        &data.connection,
+                        Some(new.clone()),
+                        None,
+                        None,
+                        Some(original.clone()),
+                    )
+                    .await
+                    {
+                        Ok(_) => {
+                            return web::Json(middleware::Response::Success(
+                                middleware::SuccessType::Custon("".to_string()),
+                                "".to_string(),
+                            ));
+                        }
+                        Err(error) => {
+                            return web::Json(middleware::Response::Error(
+                                middleware::ErrorType::Custom(String::from(
+                                    "Database error occured",
+                                )),
+                                format!("{}", error),
+                            ));
                         }
                     }
-                    Err(err) => {
-                        return Json(middleware::EditResponseBody {
-                            kind: middleware::EditRequest::Error,
-                            description: None,
-                            image: None,
-                            name: None,
-                        })
-                    }
                 }
-            }
-            middleware::EditType::Mob => {
-                match db::get_mob_by_name(&data.connection, request_data.name.clone().unwrap())
+                middleware::EditContentPartTypes::Description(new) => {
+                    match db::change_mob(
+                        &data.connection,
+                        Some(path.2.clone()),
+                        Some(new.clone()),
+                        None,
+                        None,
+                    )
                     .await
-                {
-                    Ok(data) => {
-                        if let Some(model) = data {
-                            return Json(middleware::EditResponseBody {
-                                kind: middleware::EditRequest::Initial,
-                                description: model.desct,
-                                image: model.preview,
-                                name: Some(model.mob_name),
-                            });
-                        } else {
-                            return Json(middleware::EditResponseBody {
-                                kind: middleware::EditRequest::Error,
-                                description: None,
-                                image: None,
-                                name: None,
-                            });
+                    {
+                        Ok(_) => {
+                            return web::Json(middleware::Response::Success(
+                                middleware::SuccessType::Custon("".to_string()),
+                                "".to_string(),
+                            ));
+                        }
+                        Err(error) => {
+                            return web::Json(middleware::Response::Error(
+                                middleware::ErrorType::Custom(String::from(
+                                    "Database error occured",
+                                )),
+                                format!("{}", error),
+                            ));
                         }
                     }
-                    Err(err) => {
-                        return Json(middleware::EditResponseBody {
-                            kind: middleware::EditRequest::Error,
-                            description: None,
-                            image: None,
-                            name: None,
-                        })
-                    }
                 }
-            }
-            middleware::EditType::Loot => {
-                match db::get_loot_by_name(&data.connection, request_data.name.clone().unwrap())
+                middleware::EditContentPartTypes::Preview(new) => {
+                    match db::change_mob(
+                        &data.connection,
+                        Some(path.2.clone()),
+                        None,
+                        Some(new.clone()),
+                        None,
+                    )
                     .await
-                {
-                    Ok(data) => {
-                        if let Some(model) = data {
-                            return Json(middleware::EditResponseBody {
-                                kind: middleware::EditRequest::Initial,
-                                description: model.descr,
-                                image: model.preview,
-                                name: Some(model.loot_name),
-                            });
-                        } else {
-                            return Json(middleware::EditResponseBody {
-                                kind: middleware::EditRequest::Error,
-                                description: None,
-                                image: None,
-                                name: None,
-                            });
+                    {
+                        Ok(_) => {
+                            return web::Json(middleware::Response::Success(
+                                middleware::SuccessType::Custon("".to_string()),
+                                "".to_string(),
+                            ));
+                        }
+                        Err(error) => {
+                            return web::Json(middleware::Response::Error(
+                                middleware::ErrorType::Custom(String::from(
+                                    "Database error occured",
+                                )),
+                                format!("{}", error),
+                            ));
                         }
                     }
-                    Err(err) => {
-                        return Json(middleware::EditResponseBody {
-                            kind: middleware::EditRequest::Error,
-                            description: None,
-                            image: None,
-                            name: None,
-                        })
+                }
+            },
+            middleware::EditContentRequestBodyTypes::Game(part) => match part {
+                middleware::EditContentPartTypes::Name { original, new } => {
+                    match db::change_game(
+                        &data.connection,
+                        Some(new.clone()),
+                        None,
+                        None,
+                        Some(original.clone()),
+                    )
+                    .await
+                    {
+                        Ok(_) => {
+                            return web::Json(middleware::Response::Success(
+                                middleware::SuccessType::Custon("".to_string()),
+                                "".to_string(),
+                            ));
+                        }
+                        Err(error) => {
+                            return web::Json(middleware::Response::Error(
+                                middleware::ErrorType::Custom(String::from(
+                                    "Database error occured",
+                                )),
+                                format!("{}", error),
+                            ));
+                        }
                     }
                 }
-            }
+                middleware::EditContentPartTypes::Description(new) => {
+                    match db::change_game(
+                        &data.connection,
+                        Some(path.2.clone()),
+                        Some(new.clone()),
+                        None,
+                        None,
+                    )
+                    .await
+                    {
+                        Ok(_) => {
+                            return web::Json(middleware::Response::Success(
+                                middleware::SuccessType::Custon("".to_string()),
+                                "".to_string(),
+                            ));
+                        }
+                        Err(error) => {
+                            return web::Json(middleware::Response::Error(
+                                middleware::ErrorType::Custom(String::from(
+                                    "Database error occured",
+                                )),
+                                format!("{}", error),
+                            ));
+                        }
+                    }
+                }
+                middleware::EditContentPartTypes::Preview(new) => {
+                    match db::change_game(
+                        &data.connection,
+                        Some(path.2.clone()),
+                        None,
+                        Some(new.clone()),
+                        None,
+                    )
+                    .await
+                    {
+                        Ok(_) => {
+                            return web::Json(middleware::Response::Success(
+                                middleware::SuccessType::Custon("".to_string()),
+                                "".to_string(),
+                            ));
+                        }
+                        Err(error) => {
+                            return web::Json(middleware::Response::Error(
+                                middleware::ErrorType::Custom(String::from(
+                                    "Database error occured",
+                                )),
+                                format!("{}", error),
+                            ));
+                        }
+                    }
+                }
+            },
+            middleware::EditContentRequestBodyTypes::Loot(part) => match part {
+                middleware::EditContentPartTypes::Name { original, new } => {
+                    match db::change_loot(
+                        &data.connection,
+                        Some(new.clone()),
+                        None,
+                        None,
+                        Some(original.clone()),
+                    )
+                    .await
+                    {
+                        Ok(_) => {
+                            return web::Json(middleware::Response::Success(
+                                middleware::SuccessType::Custon("".to_string()),
+                                "".to_string(),
+                            ));
+                        }
+                        Err(error) => {
+                            return web::Json(middleware::Response::Error(
+                                middleware::ErrorType::Custom(String::from(
+                                    "Database error occured",
+                                )),
+                                format!("{}", error),
+                            ));
+                        }
+                    }
+                }
+                middleware::EditContentPartTypes::Description(new) => {
+                    match db::change_loot(
+                        &data.connection,
+                        Some(path.2.clone()),
+                        Some(new.clone()),
+                        None,
+                        None,
+                    )
+                    .await
+                    {
+                        Ok(_) => {
+                            return web::Json(middleware::Response::Success(
+                                middleware::SuccessType::Custon("".to_string()),
+                                "".to_string(),
+                            ));
+                        }
+                        Err(error) => {
+                            return web::Json(middleware::Response::Error(
+                                middleware::ErrorType::Custom(String::from(
+                                    "Database error occured",
+                                )),
+                                format!("{}", error),
+                            ));
+                        }
+                    }
+                }
+                middleware::EditContentPartTypes::Preview(new) => {
+                    match db::change_loot(
+                        &data.connection,
+                        Some(path.2.clone()),
+                        None,
+                        Some(new.clone()),
+                        None,
+                    )
+                    .await
+                    {
+                        Ok(_) => {
+                            return web::Json(middleware::Response::Success(
+                                middleware::SuccessType::Custon("".to_string()),
+                                "".to_string(),
+                            ));
+                        }
+                        Err(error) => {
+                            return web::Json(middleware::Response::Error(
+                                middleware::ErrorType::Custom(String::from(
+                                    "Database error occured",
+                                )),
+                                format!("{}", error),
+                            ));
+                        }
+                    }
+                }
+            },
+            middleware::EditContentRequestBodyTypes::Location(part) => match part {
+                middleware::EditContentPartTypes::Name { original, new } => {
+                    match db::change_location(
+                        &data.connection,
+                        Some(new.clone()),
+                        None,
+                        None,
+                        Some(original.clone()),
+                    )
+                    .await
+                    {
+                        Ok(_) => {
+                            return web::Json(middleware::Response::Success(
+                                middleware::SuccessType::Custon("".to_string()),
+                                "".to_string(),
+                            ));
+                        }
+                        Err(error) => {
+                            return web::Json(middleware::Response::Error(
+                                middleware::ErrorType::Custom(String::from(
+                                    "Database error occured",
+                                )),
+                                format!("{}", error),
+                            ));
+                        }
+                    }
+                }
+                middleware::EditContentPartTypes::Description(new) => {
+                    match db::change_location(
+                        &data.connection,
+                        Some(path.2.clone()),
+                        Some(new.clone()),
+                        None,
+                        None,
+                    )
+                    .await
+                    {
+                        Ok(_) => {
+                            return web::Json(middleware::Response::Success(
+                                middleware::SuccessType::Custon("".to_string()),
+                                "".to_string(),
+                            ));
+                        }
+                        Err(error) => {
+                            return web::Json(middleware::Response::Error(
+                                middleware::ErrorType::Custom(String::from(
+                                    "Database error occured",
+                                )),
+                                format!("{}", error),
+                            ));
+                        }
+                    }
+                }
+                middleware::EditContentPartTypes::Preview(new) => {
+                    match db::change_location(
+                        &data.connection,
+                        Some(path.2.clone()),
+                        None,
+                        Some(new.clone()),
+                        None,
+                    )
+                    .await
+                    {
+                        Ok(_) => {
+                            return web::Json(middleware::Response::Success(
+                                middleware::SuccessType::Custon("".to_string()),
+                                "".to_string(),
+                            ));
+                        }
+                        Err(error) => {
+                            return web::Json(middleware::Response::Error(
+                                middleware::ErrorType::Custom(String::from(
+                                    "Database error occured",
+                                )),
+                                format!("{}", error),
+                            ));
+                        }
+                    }
+                }
+            },
         },
-        middleware::EditRequest::ChangeName => match request_data.edit_type {
-            middleware::EditType::Game => todo!(),
-            middleware::EditType::Location => {
-                match db::change_location(
-                    &data.connection,
-                    request_data.name.clone(),
-                    request_data.description.clone(),
-                    request_data.image.clone(),
-                    request_data.original.clone(),
-                )
-                .await
-                {
-                    Ok(_) => {
-                        return Json(middleware::EditResponseBody {
-                            kind: middleware::EditRequest::Success,
-                            description: None,
-                            image: None,
-                            name: None,
-                        })
-                    }
-                    Err(_) => {
-                        return Json(middleware::EditResponseBody {
-                            kind: middleware::EditRequest::Error,
-                            description: None,
-                            image: None,
-                            name: None,
-                        })
-                    }
-                }
-            }
-            middleware::EditType::Mob => {
-                match db::change_mob(
-                    &data.connection,
-                    request_data.name.clone(),
-                    request_data.description.clone(),
-                    request_data.image.clone(),
-                    request_data.original.clone(),
-                )
-                .await
-                {
-                    Ok(_) => {
-                        return Json(middleware::EditResponseBody {
-                            kind: middleware::EditRequest::Success,
-                            description: None,
-                            image: None,
-                            name: None,
-                        })
-                    }
-                    Err(_) => {
-                        return Json(middleware::EditResponseBody {
-                            kind: middleware::EditRequest::Error,
-                            description: None,
-                            image: None,
-                            name: None,
-                        })
-                    }
-                }
-            }
-            middleware::EditType::Loot => {
-                match db::change_loot(
-                    &data.connection,
-                    request_data.name.clone(),
-                    request_data.description.clone(),
-                    request_data.image.clone(),
-                    request_data.original.clone(),
-                )
-                .await
-                {
-                    Ok(_) => {
-                        return Json(middleware::EditResponseBody {
-                            kind: middleware::EditRequest::Success,
-                            description: None,
-                            image: None,
-                            name: None,
-                        })
-                    }
-                    Err(_) => {
-                        return Json(middleware::EditResponseBody {
-                            kind: middleware::EditRequest::Error,
-                            description: None,
-                            image: None,
-                            name: None,
-                        })
-                    }
-                }
-            }
-        },
-        middleware::EditRequest::ChangeDescription => match request_data.edit_type {
-            middleware::EditType::Game => todo!(),
-            middleware::EditType::Location => {
-                match db::change_location(
-                    &data.connection,
-                    request_data.name.clone(),
-                    request_data.description.clone(),
-                    request_data.image.clone(),
-                    request_data.original.clone(),
-                )
-                .await
-                {
-                    Ok(_) => {
-                        return Json(middleware::EditResponseBody {
-                            kind: middleware::EditRequest::Success,
-                            description: None,
-                            image: None,
-                            name: None,
-                        })
-                    }
-                    Err(_) => {
-                        return Json(middleware::EditResponseBody {
-                            kind: middleware::EditRequest::Error,
-                            description: None,
-                            image: None,
-                            name: None,
-                        })
-                    }
-                }
-            }
-            middleware::EditType::Mob => {
-                match db::change_mob(
-                    &data.connection,
-                    request_data.name.clone(),
-                    request_data.description.clone(),
-                    request_data.image.clone(),
-                    request_data.original.clone(),
-                )
-                .await
-                {
-                    Ok(_) => {
-                        return Json(middleware::EditResponseBody {
-                            kind: middleware::EditRequest::Success,
-                            description: None,
-                            image: None,
-                            name: None,
-                        })
-                    }
-                    Err(_) => {
-                        return Json(middleware::EditResponseBody {
-                            kind: middleware::EditRequest::Error,
-                            description: None,
-                            image: None,
-                            name: None,
-                        })
-                    }
-                }
-            }
-            middleware::EditType::Loot => {
-                match db::change_loot(
-                    &data.connection,
-                    request_data.name.clone(),
-                    request_data.description.clone(),
-                    request_data.image.clone(),
-                    request_data.original.clone(),
-                )
-                .await
-                {
-                    Ok(_) => {
-                        return Json(middleware::EditResponseBody {
-                            kind: middleware::EditRequest::Success,
-                            description: None,
-                            image: None,
-                            name: None,
-                        })
-                    }
-                    Err(_) => {
-                        return Json(middleware::EditResponseBody {
-                            kind: middleware::EditRequest::Error,
-                            description: None,
-                            image: None,
-                            name: None,
-                        })
-                    }
-                }
-            }
-        },
-        middleware::EditRequest::ChangePreview => match request_data.edit_type {
-            middleware::EditType::Game => todo!(),
-            middleware::EditType::Location => {
-                match db::change_location(
-                    &data.connection,
-                    request_data.name.clone(),
-                    request_data.description.clone(),
-                    request_data.image.clone(),
-                    request_data.original.clone(),
-                )
-                .await
-                {
-                    Ok(_) => {
-                        return Json(middleware::EditResponseBody {
-                            kind: middleware::EditRequest::Success,
-                            description: None,
-                            image: None,
-                            name: None,
-                        })
-                    }
-                    Err(_) => {
-                        return Json(middleware::EditResponseBody {
-                            kind: middleware::EditRequest::Error,
-                            description: None,
-                            image: None,
-                            name: None,
-                        })
-                    }
-                }
-            }
-            middleware::EditType::Mob => {
-                match db::change_mob(
-                    &data.connection,
-                    request_data.name.clone(),
-                    request_data.description.clone(),
-                    request_data.image.clone(),
-                    request_data.original.clone(),
-                )
-                .await
-                {
-                    Ok(_) => {
-                        return Json(middleware::EditResponseBody {
-                            kind: middleware::EditRequest::Success,
-                            description: None,
-                            image: None,
-                            name: None,
-                        })
-                    }
-                    Err(_) => {
-                        return Json(middleware::EditResponseBody {
-                            kind: middleware::EditRequest::Error,
-                            description: None,
-                            image: None,
-                            name: None,
-                        })
-                    }
-                }
-            }
-            middleware::EditType::Loot => {
-                match db::change_loot(
-                    &data.connection,
-                    request_data.name.clone(),
-                    request_data.description.clone(),
-                    request_data.image.clone(),
-                    request_data.original.clone(),
-                )
-                .await
-                {
-                    Ok(_) => {
-                        return Json(middleware::EditResponseBody {
-                            kind: middleware::EditRequest::Success,
-                            description: None,
-                            image: None,
-                            name: None,
-                        })
-                    }
-                    Err(_) => {
-                        return Json(middleware::EditResponseBody {
-                            kind: middleware::EditRequest::Error,
-                            description: None,
-                            image: None,
-                            name: None,
-                        })
-                    }
-                }
-            }
-        },
-        middleware::EditRequest::Success => todo!(),
-        middleware::EditRequest::Error => todo!(),
+        _ => {
+            return web::Json(middleware::Response::Error(
+                middleware::ErrorType::Custom(String::from("Wrong type")),
+                String::from("Not supported getter type for this page"),
+            ));
+        }
     }
 }
 #[post("/")]
 async fn viewer(
-    data: Data<DatabaseState>,
-    request_data: Json<middleware::RequestBody>,
+    session: Session,
+    data: web::Data<DatabaseState>,
+    request_data: web::Json<middleware::Request>,
 ) -> impl Responder {
-    match request_data.kind {
-        middleware::DatabaseRequest::Error => {
-            return Json(middleware::ResponseBody {
-                err: Some(format!("Not Implemented")),
-                kind: middleware::DatabaseRequest::Error,
-                games: None,
-                locations: None,
-                mobs: None,
-                loot: None,
-            });
+    match request_data.0 {
+        middleware::Request::LogOut { username } => {
+            session.remove("username");
+            session.remove("admin");
+            return web::Json(middleware::Response::Success(
+                middleware::SuccessType::Custon("".to_string()),
+                "".to_string(),
+            ));
         }
-        middleware::DatabaseRequest::Initial => match db::get_all_games(&data.connection).await {
-            Ok(game_list) => {
-                let mut game_names = Vec::with_capacity(game_list.len());
-                for model in game_list {
-                    game_names.push(model.game_name);
+        middleware::Request::PageShow(_) => todo!(),
+        middleware::Request::Getter(bodytype) => match bodytype {
+            middleware::GetterRequestBodyTypes::CurrentUser => {
+                let username: Option<String> = session.get::<String>("username").unwrap();
+                let privelege: Option<bool> = session.get::<bool>("admin").unwrap();
+                if let Some(name) = username {
+                    if let Some(status) = privelege {
+                        if status {
+                            return web::Json(middleware::Response::Success(
+                                middleware::SuccessType::Admin,
+                                name.clone(),
+                            ));
+                        } else {
+                            return web::Json(middleware::Response::Success(
+                                middleware::SuccessType::Admin,
+                                name.clone(),
+                            ));
+                        }
+                    }
                 }
-                return Json(middleware::ResponseBody {
-                    err: None,
-                    kind: middleware::DatabaseRequest::Initial,
-                    games: Some(game_names.clone()),
-                    locations: None,
-                    mobs: None,
-                    loot: None,
-                });
+                return web::Json(middleware::Response::Success(
+                    middleware::SuccessType::Custon("".to_string()),
+                    "".to_string(),
+                ));
             }
-            Err(err_msg) => {
-                return Json(middleware::ResponseBody {
-                    err: Some(format!("{}", err_msg)),
-                    kind: middleware::DatabaseRequest::Error,
-                    games: None,
-                    locations: None,
-                    mobs: None,
-                    loot: None,
-                });
+            middleware::GetterRequestBodyTypes::GameList => {
+                match db::get_all_games(&data.connection).await {
+                    Ok(games) => {
+                        let vs: Vec<String> = games
+                            .iter()
+                            .map(|game| game.game_name.clone())
+                            .collect::<Vec<String>>();
+                        return web::Json(middleware::Response::Getter(
+                            middleware::GetterResponseBodyTypes::GameList,
+                            vs,
+                        ));
+                    }
+                    Err(error) => {
+                        return web::Json(middleware::Response::Error(
+                            middleware::ErrorType::Custom(String::from("Database error occured")),
+                            format!("{}", error),
+                        ));
+                    }
+                }
+            }
+            middleware::GetterRequestBodyTypes::MobListByGame(gamename) => {
+                match db::get_all_mobs_by_game(&data.connection, gamename).await {
+                    Ok(mobs) => {
+                        let vs: Vec<String> = mobs
+                            .iter()
+                            .map(|mob| mob.mob_name.clone())
+                            .collect::<Vec<String>>();
+                        return web::Json(middleware::Response::Getter(
+                            middleware::GetterResponseBodyTypes::MobList,
+                            vs,
+                        ));
+                    }
+                    Err(error) => {
+                        return web::Json(middleware::Response::Error(
+                            middleware::ErrorType::Custom(String::from("Database error occured")),
+                            format!("{}", error),
+                        ));
+                    }
+                }
+            }
+            middleware::GetterRequestBodyTypes::LootListByGame(gamename) => {
+                match db::get_all_loots_by_game(&data.connection, gamename).await {
+                    Ok(loots) => {
+                        let vs: Vec<String> = loots
+                            .iter()
+                            .map(|loot| loot.loot_name.clone())
+                            .collect::<Vec<String>>();
+                        return web::Json(middleware::Response::Getter(
+                            middleware::GetterResponseBodyTypes::LootList,
+                            vs,
+                        ));
+                    }
+                    Err(error) => {
+                        return web::Json(middleware::Response::Error(
+                            middleware::ErrorType::Custom(String::from("Database error occured")),
+                            format!("{}", error),
+                        ));
+                    }
+                }
+            }
+            middleware::GetterRequestBodyTypes::LocationListByGame(gamename) => {
+                match db::get_all_locations_by_game(&data.connection, gamename).await {
+                    Ok(locations) => {
+                        let vs: Vec<String> = locations
+                            .iter()
+                            .map(|loc| loc.location_name.clone())
+                            .collect::<Vec<String>>();
+                        return web::Json(middleware::Response::Getter(
+                            middleware::GetterResponseBodyTypes::LocationList,
+                            vs,
+                        ));
+                    }
+                    Err(error) => {
+                        return web::Json(middleware::Response::Error(
+                            middleware::ErrorType::Custom(String::from("Database error occured")),
+                            format!("{}", error),
+                        ));
+                    }
+                }
+            }
+
+            _ => {
+                return web::Json(middleware::Response::Error(
+                    middleware::ErrorType::Custom(String::from("Wrong type")),
+                    String::from("Not supported getter type for this page"),
+                ));
             }
         },
-        middleware::DatabaseRequest::LocationsByGame => {
-            println!("Locations by {}", request_data.name.clone());
-            match db::get_all_locations_by_game(&data.connection, request_data.name.clone()).await {
-                Ok(locations_list) => {
-                    let mut locations = Vec::with_capacity(locations_list.len());
-                    for model in locations_list {
-                        locations.push((
-                            model.location_name,
-                            model.on_map.unwrap_or_default(),
-                            model.descr.unwrap_or_default(),
-                        ));
-                    }
-                    return Json(middleware::ResponseBody {
-                        err: None,
-                        kind: middleware::DatabaseRequest::LocationsByGame,
-                        games: None,
-                        locations: Some(locations.clone()),
-                        mobs: None,
-                        loot: None,
-                    });
-                }
-                Err(err_msg) => {
-                    return Json(middleware::ResponseBody {
-                        err: Some(format!("{}", err_msg)),
-                        kind: middleware::DatabaseRequest::Error,
-                        games: None,
-                        locations: None,
-                        mobs: None,
-                        loot: None,
-                    });
-                }
-            }
+        middleware::Request::GetterDeleteBlockList(_) => todo!(),
+        middleware::Request::PageAdd(_) => todo!(),
+        middleware::Request::PageDelete(_) => {
+            return web::Json(middleware::Response::Error(
+                middleware::ErrorType::Custom(String::from("Not yet implemented")),
+                String::from("Basic"),
+            ));
         }
-        middleware::DatabaseRequest::ListsByLocation => {
-            match db::get_all_mobs_by_location(&data.connection, request_data.name.clone()).await {
-                Ok(mobs_list) => {
-                    let mut mobs = Vec::with_capacity(mobs_list.len());
-                    for model in mobs_list {
-                        mobs.push((
-                            model.mob_name,
-                            model.preview.unwrap_or_default(),
-                            model.desct.unwrap_or_default(),
-                        ));
-                    }
-                    match db::get_all_loot_by_location(&data.connection, request_data.name.clone())
-                        .await
-                    {
-                        Ok(loot_list) => {
-                            let mut loots = Vec::with_capacity(loot_list.len());
-                            for model in loot_list {
-                                loots.push((
-                                    model.loot_name,
-                                    model.preview.unwrap_or_default(),
-                                    model.descr.unwrap_or_default(),
-                                ));
-                            }
-                            return Json(middleware::ResponseBody {
-                                err: None,
-                                kind: middleware::DatabaseRequest::ListsByLocation,
-                                games: None,
-                                locations: None,
-                                mobs: Some(mobs.clone()),
-                                loot: Some(loots.clone()),
-                            });
-                        }
-                        Err(err_msg) => {
-                            return Json(middleware::ResponseBody {
-                                err: Some(format!("{}", err_msg)),
-                                kind: middleware::DatabaseRequest::Error,
-                                games: None,
-                                locations: None,
-                                mobs: None,
-                                loot: None,
-                            });
-                        }
-                    }
-                }
-                Err(err_msg) => {
-                    return Json(middleware::ResponseBody {
-                        err: Some(format!("{}", err_msg)),
-                        kind: middleware::DatabaseRequest::Error,
-                        games: None,
-                        locations: None,
-                        mobs: None,
-                        loot: None,
-                    });
-                }
-            }
+        middleware::Request::PageEdit(_) => {
+            return web::Json(middleware::Response::Error(
+                middleware::ErrorType::Custom(String::from("Not yet implemented")),
+                String::from("Basic"),
+            ));
         }
-        middleware::DatabaseRequest::Success => todo!(),
+        _ => {
+            todo!()
+        }
     }
 }
+#[post("/{game}")]
+async fn game_index(
+    path: web::Path<String>,
+    data: web::Data<DatabaseState>,
+    request_data: web::Json<middleware::Request>,
+) -> impl Responder {
+    match request_data.0 {
+        middleware::Request::PageShow(infotype) => match infotype {
+            middleware::InfoRequestBodyTypes::Game { name } => {
+                match get_game_info_by_name(&data.connection, name).await {
+                    Ok(game) => {
+                        if let Some(gm) = game {
+                            return web::Json(middleware::Response::PageShow(
+                                middleware::InfoResponseBodyTypes::Game {
+                                    info: middleware::Info {
+                                        name: gm.game_name.clone(),
+                                        informations_block: gm.description.clone(),
+                                        preview: gm.preview.clone(),
+                                    },
+                                    background: gm.background.clone(),
+                                },
+                            ));
+                        } else {
+                            return web::Json(middleware::Response::Error(
+                                middleware::ErrorType::Custom(String::from(
+                                    "Database error occured",
+                                )),
+                                format!("Not Found"),
+                            ));
+                        }
+                    }
+                    Err(error) => {
+                        return web::Json(middleware::Response::Error(
+                            middleware::ErrorType::Custom(String::from("Database error occured")),
+                            format!("{}", error),
+                        ));
+                    }
+                }
+            }
+            _ => {
+                return web::Json(middleware::Response::Error(
+                    middleware::ErrorType::Custom(String::from("Bad Request")),
+                    String::from("Not supported"),
+                ));
+            }
+        },
+        _ => {
+            return web::Json(middleware::Response::Error(
+                middleware::ErrorType::Custom(String::from("Bad Request")),
+                String::from("Not supported"),
+            ));
+        }
+    }
+}
+#[post("/{game}/{related}")]
+async fn related_index(
+    path: web::Path<(String, String)>,
+    data: web::Data<DatabaseState>,
+    request_data: web::Json<middleware::Request>,
+) -> impl Responder {
+    match request_data.0 {
+        middleware::Request::PageShow(req_type) => match req_type {
+            middleware::InfoRequestBodyTypes::Location { name, game } => {
+                match db::get_location_by_name_and_by_game(&data.connection, name.clone(), game)
+                    .await
+                {
+                    Ok(location) => {
+                        if let Some(lc) = location {
+                            return web::Json(middleware::Response::PageShow(
+                                middleware::InfoResponseBodyTypes::Location {
+                                    info: middleware::Info {
+                                        name: lc.location_name.clone(),
+                                        informations_block: lc.description.clone(),
+                                        preview: lc.preview.clone(),
+                                    },
+                                },
+                            ));
+                        } else {
+                            return web::Json(middleware::Response::Error(
+                                middleware::ErrorType::Custom(String::from(
+                                    "Database error occured",
+                                )),
+                                format!("Not Found"),
+                            ));
+                        }
+                    }
+                    Err(error) => {
+                        return web::Json(middleware::Response::Error(
+                            middleware::ErrorType::Custom(String::from("Database error occured")),
+                            format!("{}", error),
+                        ));
+                    }
+                }
+            }
+            middleware::InfoRequestBodyTypes::Mob {
+                name,
+                game,
+                location,
+            } => {
+                match db::get_mob_by_name_and_by_other(
+                    &data.connection,
+                    name.clone(),
+                    game,
+                    location,
+                )
+                .await
+                {
+                    Ok(mob) => {
+                        if let Some(mb) = mob {
+                            return web::Json(middleware::Response::PageShow(
+                                middleware::InfoResponseBodyTypes::Mob {
+                                    info: middleware::Info {
+                                        name: mb.mob_name.clone(),
+                                        informations_block: mb.description.clone(),
+                                        preview: mb.preview.clone(),
+                                    },
+                                },
+                            ));
+                        } else {
+                            return web::Json(middleware::Response::Error(
+                                middleware::ErrorType::Custom(String::from(
+                                    "Database error occured",
+                                )),
+                                format!("Not Found"),
+                            ));
+                        }
+                    }
+                    Err(error) => {
+                        return web::Json(middleware::Response::Error(
+                            middleware::ErrorType::Custom(String::from("Database error occured")),
+                            format!("{}", error),
+                        ));
+                    }
+                }
+            }
+            middleware::InfoRequestBodyTypes::Loot {
+                name,
+                game,
+                location,
+                mob,
+            } => {
+                match db::get_loot_by_name_and_by_other(
+                    &data.connection,
+                    name.clone(),
+                    game,
+                    location,
+                    mob,
+                )
+                .await
+                {
+                    Ok(loot) => {
+                        if let Some(lt) = loot {
+                            return web::Json(middleware::Response::PageShow(
+                                middleware::InfoResponseBodyTypes::Loot {
+                                    info: middleware::Info {
+                                        name: lt.loot_name.clone(),
+                                        informations_block: lt.description.clone(),
+                                        preview: lt.preview.clone(),
+                                    },
+                                },
+                            ));
+                        } else {
+                            return web::Json(middleware::Response::Error(
+                                middleware::ErrorType::Custom(String::from(
+                                    "Database error occured",
+                                )),
+                                format!("Not Found"),
+                            ));
+                        }
+                    }
+                    Err(error) => {
+                        return web::Json(middleware::Response::Error(
+                            middleware::ErrorType::Custom(String::from("Database error occured")),
+                            format!("{}", error),
+                        ));
+                    }
+                }
+            }
+            _ => {
+                return web::Json(middleware::Response::Error(
+                    middleware::ErrorType::Custom(String::from("Bad Request")),
+                    format!("Not Supported"),
+                ));
+            }
+        },
+        _ => {
+            return web::Json(middleware::Response::Error(
+                middleware::ErrorType::Custom(String::from("Not yet implemented")),
+                String::from("Basic"),
+            ));
+        }
+    }
+}
+#[post("/login")]
+async fn login(
+    session: Session,
+    data: web::Data<DatabaseState>,
+    request_data: web::Json<middleware::Request>,
+) -> impl Responder {
+    match request_data.0 {
+        middleware::Request::Login { email, password } => {
+            match db::check_user(&data.connection, email.clone(), password).await {
+                Ok(admin) => {
+                    session.insert("username", email.clone());
+                    session.insert("admin", admin);
+                    if admin {
+                        return web::Json(middleware::Response::Success(
+                            middleware::SuccessType::Admin,
+                            email.clone(),
+                        ));
+                    } else {
+                        return web::Json(middleware::Response::Success(
+                            middleware::SuccessType::User,
+                            email.clone(),
+                        ));
+                    }
+                }
+                Err(error) => {
+                    return web::Json(middleware::Response::Error(
+                        middleware::ErrorType::Custom(String::from("Not yet implemented")),
+                        format!("{}", error),
+                    ));
+                }
+            }
+        }
+        _ => {
+            return web::Json(middleware::Response::Error(
+                middleware::ErrorType::Custom(String::from("Bad Request")),
+                format!("Not Supported"),
+            ));
+        }
+    }
+}
+#[post("/register")]
+async fn register(
+    session: Session,
+    data: web::Data<DatabaseState>,
+    request_data: web::Json<middleware::Request>,
+) -> impl Responder {
+    match request_data.0 {
+        middleware::Request::Registration {
+            username,
+            email,
+            password,
+        } => match db::add_user(
+            &data.connection,
+            username.clone(),
+            email.clone(),
+            password,
+            false,
+        )
+        .await
+        {
+            Ok(admin) => {
+                session.insert("username", username.clone());
+                session.insert("admin", false);
+                return web::Json(middleware::Response::Success(
+                    middleware::SuccessType::User,
+                    username.clone(),
+                ));
+            }
+            Err(error) => {
+                return web::Json(middleware::Response::Error(
+                    middleware::ErrorType::Custom(String::from("Not yet implemented")),
+                    format!("{}", error),
+                ));
+            }
+        },
+        _ => {
+            return web::Json(middleware::Response::Error(
+                middleware::ErrorType::Custom(String::from("Bad Request")),
+                format!("Not Supported"),
+            ));
+        }
+    }
+}
+
 #[derive(Debug, Clone)]
 struct DatabaseState {
     connection: sea_orm::DatabaseConnection,
@@ -1057,17 +1164,26 @@ async fn main() -> std::io::Result<()> {
         .unwrap_or_else(|_| "3000".to_string())
         .parse()
         .expect("PORT must be a number");
+    let private_key = rand::thread_rng().gen::<[u8; 32]>();
     HttpServer::new(move || {
         App::new()
-            .app_data(Data::new(state.clone()))
-            .service(Files::new("/pkg", "./frontend/pkg"))
+            .app_data(web::Data::new(state.clone()))
+            .wrap(CookieSession::signed(&private_key).secure(false))
             .service(viewer)
+            .service(login)
+            .service(register)
             .service(editor)
             .service(add)
             .service(delete)
-            .default_service(Files::new("/", "./frontend").index_file("index.html"))
+            .service(game_index)
+            .service(related_index)
+            .service(Files::new("/", "./static").index_file("index.html"))
     })
-    .bind(("0.0.0.0", port))?
+    .bind(("127.0.0.1", port))?
     .run()
     .await
 }
+// For Heroku
+/*
+  ip 0.0.0.0
+*/
