@@ -916,6 +916,140 @@ hr {
      width: 100%;
   }
 }
+select {
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  background-color: transparent;
+  border: none;
+  padding: 0 1em 0 0;
+  margin: 0;
+  width: 100%;
+  font-family: inherit;
+  font-size: inherit;
+  cursor: inherit;
+  line-height: inherit;
+  z-index: 1;
+  outline: none;
+}
+
+.select {
+  display: grid;
+  grid-template-areas: "select";
+  align-items: center;
+  position: relative;
+  min-width: 15ch;
+  max-width: 30ch;
+  border: 1px solid var(--select-border);
+  border-radius: 0.25em;
+  padding: 0.25em 0.5em;
+  font-size: 1.25rem;
+  cursor: pointer;
+  line-height: 1.1;
+}
+.create_container {  display: grid;
+  grid-template-columns: 0.2fr 1fr repeat(2, 1.5fr) 1.6fr 0.2fr;
+  grid-template-rows: 0.2fr 1fr 1.2fr 1.7fr repeat(3, 1.4fr) 0.5fr 0.2fr;
+  gap: 0px 0px;
+  grid-auto-flow: row;
+  grid-template-areas:
+    ". . . . . ."
+    ". Name_Row Name_Row Name_Row Name_Row ."
+    ". Description_Row Description_Row Description_Row Description_Row ."
+    ". Icon_Row Icon_Row Icon_Row Icon_Row ."
+    ". Games_Row Games_Row Games_Row Games_Row ."
+    ". Locations_Row Locations_Row Locations_Row Locations_Row ."
+    ". Mobs_Row Mobs_Row Mobs_Row Mobs_Row ."
+    ". Submit_Row Submit_Row Submit_Row Submit_Row ."
+    ". . . . . .";
+}
+
+.Name_Row {  display: grid;
+  grid-template-columns: 0.25fr 1.75fr;
+  grid-template-rows: 1fr;
+  gap: 0px 0px;
+  grid-auto-flow: row;
+  grid-template-areas:
+    "Col_25 Col-75";
+  grid-area: Name_Row;
+}
+
+.Col_25 { grid-area: Col_25; }
+
+.Col-75 { grid-area: Col-75; }
+
+.Description_Row {  display: grid;
+  grid-template-columns: 0.25fr 1.75fr;
+  grid-template-rows: 1fr;
+  gap: 0px 0px;
+  grid-auto-flow: row;
+  grid-template-areas:
+    "Col-Des_25 Col-Des_75";
+  grid-area: Description_Row;
+}
+
+.Col-Des_25 { grid-area: Col-Des_25; }
+
+.Col-Des_75 { grid-area: Col-Des_75; }
+
+.Icon_Row {  display: grid;
+  grid-template-columns: 0.25fr 1.75fr;
+  grid-template-rows: 1fr;
+  gap: 0px 0px;
+  grid-auto-flow: row;
+  grid-template-areas:
+    "Col-Icon_25 Col-Icon_75";
+  grid-area: Icon_Row;
+}
+
+.Col-Icon_25 { grid-area: Col-Icon_25; }
+
+.Col-Icon_75 { grid-area: Col-Icon_75; }
+
+.Games_Row {  display: grid;
+  grid-template-columns: 0.25fr 1.75fr;
+  grid-template-rows: 1fr;
+  gap: 0px 0px;
+  grid-auto-flow: row;
+  grid-template-areas:
+    "Col-Games_25 Col-Games_75";
+  grid-area: Games_Row;
+}
+
+.Col-Games_25 { grid-area: Col-Games_25; }
+
+.Col-Games_75 { grid-area: Col-Games_75; }
+
+.Locations_Row {  display: grid;
+  grid-template-columns: 0.25fr 1.75fr;
+  grid-template-rows: 1fr;
+  gap: 0px 0px;
+  grid-auto-flow: row;
+  grid-template-areas:
+    "Col-Locs_25 Col-Locs_75";
+  grid-area: Locations_Row;
+}
+
+.Col-Locs_25 { grid-area: Col-Locs_25; }
+
+.Col-Locs_75 { grid-area: Col-Locs_75; }
+
+.Mobs_Row {  display: grid;
+  grid-template-columns: 0.25fr 1.75fr;
+  grid-template-rows: 1fr;
+  gap: 0px 0px;
+  grid-auto-flow: row;
+  grid-template-areas:
+    "Col-Mobs_25 Col-Mobs_75";
+  grid-area: Mobs_Row;
+}
+
+.Col-Mobs_25 { grid-area: Col-Mobs_25; }
+
+.Col-Mobs_75 { grid-area: Col-Mobs_75; }
+
+.Submit_Row { grid-area: Submit_Row; }
+
                 "#/>
 
             {footer}

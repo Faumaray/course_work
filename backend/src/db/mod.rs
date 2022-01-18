@@ -612,6 +612,21 @@ pub async fn add_loot(
         loot::Entity::insert_many(loot_list.clone())
             .exec(connection)
             .await?;
+    } else {
+        let mut lt = loot::ActiveModel {
+            loot_name: Set(loot_name.clone().to_owned()),
+            description: Set(description.clone().to_owned()),
+            preview: Set(preview.clone().to_owned()),
+            ..Default::default()
+        };
+        if let Some(game) = games::Entity::find()
+            .filter(games::Column::GameName.like(&game_name))
+            .one(connection)
+            .await?
+        {
+            lt.game_id = Set(Some(game.id));
+        }
+        loot::Entity::insert(lt).exec(connection).await?;
     }
     Ok(())
 }
