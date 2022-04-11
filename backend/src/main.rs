@@ -6,7 +6,7 @@ use std::env;
 use actix_files::{Files, NamedFile};
 use actix_web::{get, post, web, App, HttpServer, Responder, Result};
 use db::*;
-#[post("/admin/delete")]
+#[post("api/admin/delete")]
 async fn delete(
     data: web::Data<DatabaseState>,
     request_data: web::Json<middleware::Request>,
@@ -177,7 +177,7 @@ async fn delete(
         }
     }
 }
-#[post("/admin/add")]
+#[post("api/admin/add")]
 async fn add(
     data: web::Data<DatabaseState>,
     request_data: web::Json<middleware::Request>,
@@ -389,7 +389,7 @@ async fn add(
         }
     }
 }
-#[post("/admin/edit/{type}/{part}/{name}")]
+#[post("api/admin/edit/{type}/{part}/{name}")]
 async fn editor(
     path: web::Path<(String, String, String)>,
     data: web::Data<DatabaseState>,
@@ -726,7 +726,7 @@ async fn editor(
         }
     }
 }
-#[post("/")]
+#[post("api/")]
 async fn viewer(
     session: Session,
     data: web::Data<DatabaseState>,
@@ -873,7 +873,7 @@ async fn viewer(
         }
     }
 }
-#[post("/{game}")]
+#[post("api/{game}")]
 async fn game_index(
     path: web::Path<String>,
     data: web::Data<DatabaseState>,
@@ -927,7 +927,7 @@ async fn game_index(
         }
     }
 }
-#[post("/{game}/{related}")]
+#[post("api/{game}/{related}")]
 async fn related_index(
     path: web::Path<(String, String)>,
     data: web::Data<DatabaseState>,
@@ -1066,7 +1066,7 @@ async fn related_index(
         }
     }
 }
-#[post("/login")]
+#[post("api/login")]
 async fn login(
     session: Session,
     data: web::Data<DatabaseState>,
@@ -1106,7 +1106,7 @@ async fn login(
         }
     }
 }
-#[post("/register")]
+#[post("api/register")]
 async fn register(
     session: Session,
     data: web::Data<DatabaseState>,
@@ -1149,6 +1149,10 @@ async fn register(
         }
     }
 }
+async fn react_index() -> actix_files::NamedFile {
+    actix_files::NamedFile::open("/home/faumaray/Projects/Rust/course_work/static/index.html")
+        .unwrap()
+}
 
 #[derive(Debug, Clone)]
 struct DatabaseState {
@@ -1178,6 +1182,7 @@ async fn main() -> std::io::Result<()> {
             .service(game_index)
             .service(related_index)
             .service(Files::new("/", "./static").index_file("index.html"))
+            .default_service(web::get().to(react_index))
     })
     .bind(("0.0.0.0", port))?
     .run()

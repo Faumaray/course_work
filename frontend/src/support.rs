@@ -1,14 +1,15 @@
 use serde::Serialize;
 use yew::html::ImplicitClone;
 pub async fn fetch_post(body: String, path: &str) -> Result<middleware::Response, reqwasm::Error> {
-    let res: Result<middleware::Response, reqwasm::Error> = reqwasm::http::Request::post(path)
-        .header("Content-Type", "application/json")
-        .body(body)
-        .send()
-        .await
-        .unwrap()
-        .json()
-        .await;
+    let res: Result<middleware::Response, reqwasm::Error> =
+        reqwasm::http::Request::post(format!("api{}", path).as_str())
+            .header("Content-Type", "application/json")
+            .body(body)
+            .send()
+            .await
+            .unwrap()
+            .json()
+            .await;
     res
 }
 
