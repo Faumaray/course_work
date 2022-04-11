@@ -1150,8 +1150,7 @@ async fn register(
     }
 }
 async fn react_index() -> actix_files::NamedFile {
-    actix_files::NamedFile::open("/home/faumaray/Projects/Rust/course_work/static/index.html")
-        .unwrap()
+    actix_files::NamedFile::open("./static/index.html").unwrap()
 }
 
 #[derive(Debug, Clone)]
